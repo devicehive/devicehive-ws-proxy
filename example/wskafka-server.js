@@ -1,6 +1,6 @@
 'use strict';
 
-const WSKafka = require('../ws-kafka').WSKafkaConnector,
+const WSKafka = require('../ws-kafka').WSKafkaProxy,
     debug = require('debug')('ws-kafka:test'),
     cfg = require('./config'),
     path = require('path');

@@ -1,18 +1,41 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-# WebSocket connector to Kafka
-
-## Server
-WebSocket server which implements message protocol to work with some basic Kafka APIs,
-such as create, list, subscribe to topics, push messages.
-
-Based on [SOHU-Co/kafka-node](https://github.com/SOHU-Co/kafka-node) 
+# WebSocket proxy to Kafka
+The project wrap some of the essential kafka functionality 
+allowing you to communicate with Kafka through WebSockets.
+WebSocket implements JSON based message protocol and have the following features:
+ - Topics
+    - Create
+    - List
+    - Subscribe (incl. consumer groups)
+    - Un-subscribe
+ - Push messages to topics
+ 
+This project is based on [SOHU-Co/kafka-node](https://github.com/SOHU-Co/kafka-node) 
 and [WebSockets](https://github.com/websockets/ws)
 
+
+# Checkout and Build
+```
+git clone https://github.com/devicehive/devicehive-ws-kafka-proxy.git
+cd devicehive-ws-kafka-proxy
+docker-compose up -d --build
+```
+
+After running these commands, docker starts all images (Kafka, ZK, Proxy), 
+you will have 3 instances websocket-kafka proxies available on 8080, 8081, 8082 ports. 
+
+# Launch Locally
+You can launch kafka proxy locally. You will need Kafka and ZK running.
+
 ```javascript
+const WSKafka = require('../ws-kafka').WSKafkaProxy,
+        debug = require('debug')('ws-kafka:test');
+
+
 conf_module.kafka_config = {
         //node-kafka options
-        kafkaHost: getBrokerList(),
+        kafkaHost: 'localhost:9094',
         clientId: 'test-kafka-client-2',
         connectTimeout: 1000,
         requestTimeout: 60000,
@@ -22,7 +45,7 @@ conf_module.kafka_config = {
     };
 
     conf_module.websocket_config ={
-        port: getWebSocketPort()
+        port: 8080
     };
 
     conf_module.producer_config = {
@@ -31,12 +54,12 @@ conf_module.kafka_config = {
         partitionerType: 2,
         // custom options
         mq_limit: 20000,
-        mq_interval: 200 //if null, then messages published immediately
+        mq_interval: 50 //if null, then messages published immediately
     };
 
     conf_module.consumer_config ={
         // host: 'zookeeper:2181',  // zookeeper host omit if connecting directly to broker (see kafkaHost below)
-        kafkaHost: getBrokerList(),
+        kafkaHost: 'localhost:9094',
         ssl: true, // optional (defaults to false) or tls options hash
         groupId: 'kafka-node-group', //should be set by message to ws
         autoCommit: true,
@@ -79,29 +102,40 @@ wsk.start();
 
 ```
 
-Each WebSocket connection may have one Kafka producer and one consumer. 
+Each WebSocket connection to the proxy may have one Kafka producer and one consumer. 
 The producer is initialized with each WebSocket connection. The consumer is initialized after subscription message received.   
 
-### Notes on configuration
+## Notes on configuration
 producer_config and consumer_config objects both have two custom options 
 `mq_limit: 5000` specifies the maximum message number to be stored in the buffer before sending them. 
 `mq_interval: 50` specifies the number in ms how often should message from the buffer be sent to Kafka brokers or the WebSocket.  
 
-## Message Structure
-### General
+# Message Structure
+## General
 All messages are `JSON` based. Generic message structure looks like this:
 ```json
 {
   "id":"any_id",
-  "refid":"id of orignial message", //returned by server to keep track of messages
+  "refid":"id of orignial message",
   "t":"message type",
   "a":"action",
-  "s":"success", //0 or 1
+  "s":"success",
   "p":"payload"
 }
 ```
-### Topics
-#### Create
+
+| Param | Type | Description |
+| --- | --- | --- |
+| id | `String or Int` | Message identifier |
+| refid | `String or Int` | Original Message Id, returned by server |
+| t | `String` | Type: ["topic","notif","health"] |
+| a | `String` | Action: ["create","list","subscribe","unsubscribe"]|
+| s | `Int` | Status, returned by the server, 0 if OK. |
+| p | `String` | Custom payload |
+
+Server can receive an list of messages in one batch.
+## Topics
+### Create
 ```json
 {
   "id":1, 
@@ -141,7 +175,7 @@ Response message:
 ```
 Payload is the list of topic-partitions structures.
 
-#### Subscribe
+### Subscribe
 Subscribe to topic and join consumer group
 ```json
 {
@@ -167,7 +201,7 @@ Response message:
 
 All notifications from Kafka will be sent to the same WebSocket connection where the subscription was made.  
 
-#### Unsubscribe
+### Unsubscribe
 Unsubscribe from topics and consumer group
 ```json
 {
@@ -182,21 +216,21 @@ Response message:
 {"id":567,"refid":1300,"t":"topic","a":"unsubscribe","s":0}
 ```
 
-### Notification
-#### Send
+## Notification
+### Send
 ```json
 {"id":1320,"t":"notif","a":"create","p":{"t":"topic1", "m":"{custom_message:'msg'}"}}
 ```
 Response message: - No response. `TODO:` Need to create an option to receive acknowledgement receipt.   
 
-#### Receive
+### Receive
 Notifications are received automatically after subscription.
 ```json
 [{"id":3,"t":"notif","p":"hello"}]
 ```
 A list of notifications with the payload which was sent using send notificaiton message.
 
-### Healthcheck
+## Healthcheck
 ```json
 {
     "id":1500,
