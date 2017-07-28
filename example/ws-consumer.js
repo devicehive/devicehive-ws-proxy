@@ -3,7 +3,7 @@ const WebSocket = require('ws'),
     debug = require('debug')('ws-consumer');
 
 
-const TOPIC_COUNT = cfg.TOPICS_COUNT || 5;
+const TOPIC_COUNT = process.env.TOPICS || (cfg.TOPICS_COUNT || 1);
 
 process.on('uncaughtException', e => console.error(e))
     .on('SIGINT', ()=>{
