@@ -1,15 +1,16 @@
 {
-  "name": "WebSocket to Kafka connector",
+  "name": "devicehive-ws-kafka-proxy",
   "version": "1.0.0",
   "description": "WebSocket to Kafka connector",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
+  "scripts": {},
+  "author": "Igor Iliunin <ilunin.igor@gmail.com>",
+  "main" : "ws-kafka.js",
   "license": "Apache 2.0",
   "dependencies": {
-    "debug": "^2.6.8",
     "kafka-node": "^2.0.1",
     "ws": "^3.0.0"
+  },
+  "devDependencies": {
+    "debug": "^2.6.8"
   }
 }
