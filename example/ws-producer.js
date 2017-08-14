@@ -1,6 +1,7 @@
 const WebSocket = require('ws'),
     cfg = require('./config-test'),
     debug = require('debug')('ws-producer');
+    const pino = require(`pino`)();
 
 const MPS = process.env.MSG_RATE || (cfg.MESSAGE_RATE || 10000 );
 const TOTAL_MSGS = process.env.TOTAL_MSGS || (cfg.TOTAL_MESSAGES || 1000000);
@@ -20,9 +21,9 @@ ws.on('open', async function open() {
     .on('error', e => console.error(e))
     .on('message', async function incoming(data) {
         let msg = JSON.parse(data);
-        console.log(msg);
+        pino.info(msg);
         if(msg.refid === "0000" && msg.s === 0){
-            console.log(`topics created: ${msg.p}`);
+            pino.info(`topics created: ${msg.p}`);
             sendPayload(ws);
         }
 
@@ -39,20 +40,18 @@ function createTopics(ws) {
     for(let i = 0; i < TOPIC_COUNT; i++){
         msg.p.push(`topic_${i}`);
     }
-    console.log(msg);
+    pino.info(msg);
     ws.send(JSON.stringify(msg));
 }
 
 async function sendPayload(ws){
-
-        try{
             let now = new Date().getTime();
             let counter = 0;
-            console.log(TOTAL_MSGS);
+            pino.info(TOTAL_MSGS);
             while (counter < TOTAL_MSGS) {
 
                 if (ws.readyState > 1) {
-                    debug(`WebSocket State ${ws.readyState}`);
+                    // debug(`WebSocket State ${ws.readyState}`);
                 }
                 let msgs = [];
 
@@ -71,7 +70,7 @@ async function sendPayload(ws){
                     msgs.length = 0;
                 }
 
-                console.log(`${counter} | ${new Date().getTime() - now} ms`);
+                pino.info(`${counter} | ${new Date().getTime() - now} ms`);
                 let wait_time = (now + 1000) - new Date().getTime();
                 if (wait_time > 0)
                     await sleep(wait_time);
@@ -79,11 +78,6 @@ async function sendPayload(ws){
                 now = new Date().getTime();
             }
             ws.close(1000);
-
-        } catch (e) {
-            console.error(e);
-
-        }
 
 }
 

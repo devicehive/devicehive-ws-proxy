@@ -1,9 +1,10 @@
 'use strict';
 
-const WSKafka = require('../wsProxy').WSKafkaProxy,
+const WSKafka = require('../wsProxy').WSProxy,
     debug = require('debug')('ws-kafka:test'),
     cfg = require('./config'),
     path = require('path');
+    const pino = require(`pino`)();
 
 let conf_module = {};
 
@@ -20,12 +21,12 @@ try {
     // if (process.env.CONF_DIR) {
         const p = path.format({dir: process.env.CONF_DIR,  base: 'ws_kafka_config' });
         conf_module = require(p);
-        debug(`config loaded form ${p}`);
+        // debug(`config loaded form ${p}`);
     // }
 }catch(e){
-    debug(`default config loaded`);
+    // debug(`default config loaded`);
 
-    conf_module.kafka_config = {
+    conf_module.clientConfig = {
         //node-kafka options
         kafkaHost: getBrokerList(),
         clientId: 'test-kafka-client-2',
@@ -36,11 +37,11 @@ try {
         no_zookeeper_client: true
     };
 
-    conf_module.websocket_config ={
+    conf_module.webSocketConfig ={
         port: getWebSocketPort()
     };
 
-    conf_module.producer_config = {
+    conf_module.producerConfig = {
         requireAcks: 1,
         ackTimeoutMs: 100,
         partitionerType: 2,
@@ -49,7 +50,7 @@ try {
         mq_interval: 200 //if null, then messages published immediately
     };
 
-    conf_module.consumer_config ={
+    conf_module.consumerConfig ={
         // host: 'zookeeper:2181',  // zookeeper host omit if connecting directly to broker (see kafkaHost below)
         kafkaHost: getBrokerList(),
         ssl: true, // optional (defaults to false) or tls options hash
@@ -77,26 +78,28 @@ try {
         mq_limit: 5000,
         mq_interval: 50 //if null, then messages published immediately
     };
+
+    conf_module.brockerType = `kafka`;
 }
 
 const wsk = new WSKafka(conf_module);
 
-wsk.on('ws-connection', (ws, req) => console.log('connection'))
-    .on('ws-close', () => console.log('ws-close'))
-    .on('wss-ready', () => console.log('wss-ready'))
-    .on('producer-ready', () => console.log('producer-ready'))
-    .on('producer-error', (e) => console.log(`producer-error ${e}`))
-    .on('consumer-ready', () => console.log('consumer-ready'))
-    .on('consumer-error', (e) => console.log(`consumer-error ${e}`))
+wsk.on('ws-connection', (ws, req) => pino.info('connection'))
+    .on('ws-close', () => pino.info('ws-close'))
+    .on('wss-ready', () => pino.info('wss-ready'))
+    .on('producer-ready', () => pino.info('producer-ready'))
+    .on('producer-error', (e) => pino.info(`producer-error ${e}`))
+    .on('consumer-ready', () => pino.info('consumer-ready'))
+    .on('consumer-error', (e) => pino.info(`consumer-error ${e}`))
     .on('consumer-message', () => {})
-    .on('error', (e) => console.log(`error ${e}`));
+    .on('error', (e) => pino.info(`error ${e}`));
 
 process.on('uncaughtException', e => {
-    debug(e);
+    pino.info(e);
     wsk.stop.bind(wsk);
     wsk.stop();
 }).on('SIGINT', function exit(){
-        debug("EXIT");
+        // debug("EXIT");
         wsk.stop();
     }
 );
@@ -104,7 +107,7 @@ process.on('uncaughtException', e => {
 try {
     wsk.start();
 }catch(e){
-    debug(e);
+    // debug(e);
     wsk.stop();
 }
 

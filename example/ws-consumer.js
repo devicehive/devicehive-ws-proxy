@@ -1,6 +1,7 @@
 const WebSocket = require('ws'),
     cfg = require('./config-test'),
     debug = require('debug')('ws-consumer');
+    const pino = require(`pino`)();
 
 
 const TOPIC_COUNT = process.env.TOPICS || (cfg.TOPICS_COUNT || 1);
@@ -21,10 +22,10 @@ const mrate = setInterval(function () {
     let rate = counter - last_counter;
     if(rate > 0) {
         awg = Math.ceil((awg * awg_counter + rate) / ++awg_counter);
-        console.log(`processed ${counter} @${rate} msgs/s with average rate ${awg} msgs/s`);
+        pino.info(`processed ${counter} @${rate} msgs/s with average rate ${awg} msgs/s`);
         last_counter = counter;
     }
-}, 1000);
+}, 5000);
 
 ws.on('open', () => {
     subscribeTopics(ws);
@@ -37,7 +38,7 @@ ws.on('open', () => {
     }else{
         if(Array.isArray(msg)){
             counter += msg.length;
-            handleMsg(msg[0], counter, true);
+            handleMsg(msg[0], counter);
             // msg.forEach(m =>{
             //     counter++;
             //     handleMsg(m, counter);
@@ -48,7 +49,7 @@ ws.on('open', () => {
             handleMsg(msg, counter);
         }
 
-        debug(msg);
+        // debug(msg);
     }
 });
 
@@ -59,7 +60,7 @@ function handleMsg(msg, counter, skipCounter = false){
             lag = new Date().getTime() - msg.p;
         }
 
-        console.log(`${counter} messages received with interval ${lag}`);
+        pino.info(`${counter} messages received with interval ${lag}`);
     }
 }
 
