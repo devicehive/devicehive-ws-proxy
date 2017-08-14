@@ -1,6 +1,6 @@
 'use strict';
 
-const WSKafka = require('../ws-kafka').WSKafkaProxy,
+const WSKafka = require('../wsProxy').WSKafkaProxy,
     debug = require('debug')('ws-kafka:test'),
     cfg = require('./config'),
     path = require('path');
@@ -17,11 +17,11 @@ function getWebSocketPort(){
 
 try {
 
-    if (process.env.CONF_DIR) {
+    // if (process.env.CONF_DIR) {
         const p = path.format({dir: process.env.CONF_DIR,  base: 'ws_kafka_config' });
         conf_module = require(p);
         debug(`config loaded form ${p}`);
-    }
+    // }
 }catch(e){
     debug(`default config loaded`);
 
@@ -81,16 +81,15 @@ try {
 
 const wsk = new WSKafka(conf_module);
 
-wsk.on('ws-connection', (ws, req) => debug('connection'))
-    .on('ws-close', () => debug('ws-close'))
-    .on('wss-ready', () => debug('wss-ready'))
-    .on('producer-ready', () => debug('producer-ready'))
+wsk.on('ws-connection', (ws, req) => console.log('connection'))
+    .on('ws-close', () => console.log('ws-close'))
+    .on('wss-ready', () => console.log('wss-ready'))
+    .on('producer-ready', () => console.log('producer-ready'))
     .on('producer-error', (e) => console.log(`producer-error ${e}`))
-    .on('consumer-ready', () => debug('consumer-ready'))
+    .on('consumer-ready', () => console.log('consumer-ready'))
     .on('consumer-error', (e) => console.log(`consumer-error ${e}`))
     .on('consumer-message', () => {})
     .on('error', (e) => console.log(`error ${e}`));
-
 
 process.on('uncaughtException', e => {
     debug(e);

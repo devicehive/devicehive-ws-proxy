@@ -6,7 +6,6 @@ const MPS = process.env.MSG_RATE || (cfg.MESSAGE_RATE || 10000 );
 const TOTAL_MSGS = process.env.TOTAL_MSGS || (cfg.TOTAL_MESSAGES || 1000000);
 const TOPIC_COUNT = process.env.TOPICS || (cfg.TOPICS_COUNT || 1);
 
-console.log(MPS);
 process.on('uncaughtException', e => console.error(e));
 
 function sleep(ms) {
@@ -21,8 +20,9 @@ ws.on('open', async function open() {
     .on('error', e => console.error(e))
     .on('message', async function incoming(data) {
         let msg = JSON.parse(data);
+        console.log(msg);
         if(msg.refid === "0000" && msg.s === 0){
-            debug(`topics created: ${msg.p}`);
+            console.log(`topics created: ${msg.p}`);
             sendPayload(ws);
         }
 
@@ -39,7 +39,7 @@ function createTopics(ws) {
     for(let i = 0; i < TOPIC_COUNT; i++){
         msg.p.push(`topic_${i}`);
     }
-
+    console.log(msg);
     ws.send(JSON.stringify(msg));
 }
 
@@ -48,7 +48,7 @@ async function sendPayload(ws){
         try{
             let now = new Date().getTime();
             let counter = 0;
-
+            console.log(TOTAL_MSGS);
             while (counter < TOTAL_MSGS) {
 
                 if (ws.readyState > 1) {
@@ -61,18 +61,17 @@ async function sendPayload(ws){
                         id: counter++,
                         t: "notif",
                         a: "create",
-                        p: {t: `topic_${rand(0, TOPIC_COUNT - 1)}`, m: new Date().getTime()}
+                        p: {t: `topic_0`, m: new Date().getTime()}
                     };
 
                     msgs.push(msg)
                 }
-
                 if(msgs.length > 0){
                     ws.send(JSON.stringify(msgs));
                     msgs.length = 0;
                 }
 
-                debug(`${counter} | ${new Date().getTime() - now} ms`);
+                console.log(`${counter} | ${new Date().getTime() - now} ms`);
                 let wait_time = (now + 1000) - new Date().getTime();
                 if (wait_time > 0)
                     await sleep(wait_time);

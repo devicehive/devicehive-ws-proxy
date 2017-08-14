@@ -1,7 +1,7 @@
 {
-  "name": "WebSocket to Kafka connector",
+  "name": "websocket message broker connector",
   "version": "1.0.0",
-  "description": "WebSocket to Kafka connector",
+  "description": "WebSocket message broker connector",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -9,6 +9,7 @@
   "license": "Apache 2.0",
   "dependencies": {
     "debug": "^2.6.8",
+    "guid": "0.0.12",
     "kafka-node": "^2.0.1",
     "ws": "^3.0.0"
   }
