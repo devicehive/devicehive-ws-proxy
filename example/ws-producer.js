@@ -22,7 +22,7 @@ ws.on('open', async function open() {
     .on('message', async function incoming(data) {
         let msg = JSON.parse(data);
         pino.info(msg);
-        if(msg.refid === "0000" && msg.s === 0){
+        if(msg.id === "0000" && msg.s === 0){
             pino.info(`topics created: ${msg.p}`);
             sendPayload(ws);
         }
@@ -77,7 +77,7 @@ async function sendPayload(ws){
 
                 now = new Date().getTime();
             }
-            ws.close(1000);
+            // ws.close(1000);
 
 }
 

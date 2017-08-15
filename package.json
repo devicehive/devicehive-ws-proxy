@@ -6,6 +6,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
+  "main": "index.js",
   "license": "Apache 2.0",
   "dependencies": {
     "debug": "^2.6.8",

@@ -1,5 +1,5 @@
 function getBrokerList(){
-    return process.env.KAFKA_MBR || 'kafka:9092';
+    return process.env.KAFKA_MBR || 'localhost:9092';
 }
 
 function getWebSocketPort(){
