@@ -79,7 +79,7 @@ try {
         mq_interval: 50 //if null, then messages published immediately
     };
 
-    conf_module.brockerType = `kafka`;
+    conf_module.brokerType = `kafka`;
 }
 
 const wsk = new WSKafka(conf_module);
@@ -95,7 +95,7 @@ wsk.on('ws-connection', (ws, req) => pino.info('connection'))
     .on('error', (e) => pino.info(`error ${e}`));
 
 process.on('uncaughtException', e => {
-    pino.info(e);
+    pino.error(e);
     wsk.stop.bind(wsk);
     wsk.stop();
 }).on('SIGINT', function exit(){
@@ -107,7 +107,7 @@ process.on('uncaughtException', e => {
 try {
     wsk.start();
 }catch(e){
-    // debug(e);
+    pino.error(e);
     wsk.stop();
 }
 
