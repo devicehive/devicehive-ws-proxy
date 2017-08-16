@@ -31,7 +31,7 @@ ws.on('open', () => {
     subscribeTopics(ws);
 }).on('message', (data) => {
     let msg = JSON.parse(data);
-    console.log(msg);
+
     if(msg.id === "0000"){
        if(msg.s === 1){
            ws.close();

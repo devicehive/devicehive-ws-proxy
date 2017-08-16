@@ -21,12 +21,11 @@ ws.on('open', async function open() {
     .on('error', e => console.error(e))
     .on('message', async function incoming(data) {
         let msg = JSON.parse(data);
-        pino.info(msg);
         if(msg.id === "0000" && msg.s === 0){
+            pino.info(msg);
             pino.info(`topics created: ${msg.p}`);
             sendPayload(ws);
         }
-
     });
 
 function createTopics(ws) {
