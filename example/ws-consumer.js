@@ -1,7 +1,7 @@
 const WebSocket = require('ws'),
     cfg = require('./config-test'),
     debug = require('debug')('ws-consumer');
-    const pino = require(`pino`)();
+    const pino = require(`pino`)({level: process.env.LEVEL || 'info'});
 
 
 const TOPIC_COUNT = process.env.TOPICS || (cfg.TOPICS_COUNT || 1);
@@ -11,7 +11,7 @@ process.on('uncaughtException', e => console.error(e))
         clearInterval(mrate);
         ws.close()});
 
-const ws = new WebSocket(process.env.WSS_URL || cfg.WSS_URL);
+const ws = new WebSocket(process.env.WSS_URL || cfg.WSS_URL, {perMessageDeflate: false});
 
 let awg_counter = 0;
 let awg = 0;
@@ -31,9 +31,11 @@ ws.on('open', () => {
     subscribeTopics(ws);
 }).on('message', (data) => {
     let msg = JSON.parse(data);
+    console.log(msg);
     if(msg.id === "0000"){
        if(msg.s === 1){
            ws.close();
+           process.exit(1);
        }
     }else{
         if(Array.isArray(msg)){

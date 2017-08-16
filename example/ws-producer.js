@@ -1,7 +1,7 @@
 const WebSocket = require('ws'),
     cfg = require('./config-test'),
     debug = require('debug')('ws-producer');
-    const pino = require(`pino`)();
+    const pino = require(`pino`)({level: process.env.LEVEL || 'info'});
 
 const MPS = process.env.MSG_RATE || (cfg.MESSAGE_RATE || 10000 );
 const TOTAL_MSGS = process.env.TOTAL_MSGS || (cfg.TOTAL_MESSAGES || 1000000);
@@ -13,7 +13,7 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-const ws = new WebSocket(process.env.WSS_URL || cfg.WSS_URL);
+const ws = new WebSocket(process.env.WSS_URL || cfg.WSS_URL, {perMessageDeflate: false});
 
 ws.on('open', async function open() {
     createTopics(ws);

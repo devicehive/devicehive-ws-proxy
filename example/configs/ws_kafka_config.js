@@ -1,3 +1,5 @@
+const debug = require('debug')('ws-kafka:config')
+
 function getBrokerList(){
     return process.env.KAFKA_MBR || 'localhost:9092';
 }
@@ -6,7 +8,7 @@ function getWebSocketPort(){
     return process.env.WSS_PORT || '8085';
 }
 
-module.exports.kafka_config = {
+module.exports.clientConfig = {
     //node-kafka options
     kafkaHost: getBrokerList(),
     clientId: 'test-kafka-client-2',
@@ -17,11 +19,11 @@ module.exports.kafka_config = {
     no_zookeeper_client: true
 };
 
-module.exports.websocket_config ={
+module.exports.webSocketConfig ={
     port: getWebSocketPort()
 };
 
-module.exports.producer_config = {
+module.exports.producerConfig = {
     requireAcks: 1,
     ackTimeoutMs: 100,
     partitionerType: 2,
@@ -44,7 +46,7 @@ module.exports.producer_config = {
 //     fromOffset: false
 // };
 
-module.exports.consumer_config ={
+module.exports.consumerConfig ={
     // host: 'zookeeper:2181',  // zookeeper host omit if connecting directly to broker (see kafkaHost below)
     kafkaHost: getBrokerList(),
     ssl: true, // optional (defaults to false) or tls options hash
@@ -72,3 +74,5 @@ module.exports.consumer_config ={
     mq_limit: 5000,
     mq_interval: 50 //if null, then messages published immediately
 };
+
+module.exports.brokerType = `kafka`;

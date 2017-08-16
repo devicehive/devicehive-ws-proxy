@@ -21,10 +21,10 @@ try {
     // if (process.env.CONF_DIR) {
         const p = path.format({dir: process.env.CONF_DIR,  base: 'ws_kafka_config' });
         conf_module = require(p);
-        // debug(`config loaded form ${p}`);
+        debug(`config loaded form ${p}`);
     // }
 }catch(e){
-    // debug(`default config loaded`);
+    debug(`default config loaded`);
 
     conf_module.clientConfig = {
         //node-kafka options
