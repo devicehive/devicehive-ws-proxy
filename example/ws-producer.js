@@ -21,16 +21,16 @@ ws.on('open', async function open() {
     .on('error', e => console.error(e))
     .on('message', async function incoming(data) {
         let msg = JSON.parse(data);
-        if(msg.status != 0){
-            console.error(msg);
-            process.exit(1);
-        }
-        if(msg.id === "0000" && msg.s === 0){
+
+        if(msg.t === 'topic' && msg.id === "0000" && msg.s === 0){
+            ws.removeEventListener('message', incoming);
             pino.info(msg);
             pino.info(`topics created: ${msg.p}`);
             sendPayload(ws);
+        }else if(msg.s != 0){
+            console.error(msg);
+            process.exit(1);
         }
-        ws.removeEventListener('message', incoming);
     });
 
 function createTopics(ws) {
