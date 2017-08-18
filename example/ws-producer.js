@@ -81,6 +81,7 @@ async function sendPayload(ws){
 
                 now = new Date().getTime();
             }
+            process.exit(0);
             // ws.close(1000);
 
 }
