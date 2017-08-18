@@ -54,9 +54,11 @@ ws.on('open', () => {
         // debug(msg);
     }
 });
-
+let cnt = 0;
 function handleMsg(msg, counter, skipCounter = false){
-    if(counter % 100000 === 0 || skipCounter){
+    if(counter / 100000 > cnt || skipCounter){
+        cnt++;
+    // if(counter % 100000 === 0 || skipCounter){
         let lag = -1;
         if(msg.p){
             lag = new Date().getTime() - msg.p;
