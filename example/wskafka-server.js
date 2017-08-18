@@ -96,8 +96,8 @@ wsk.on('ws-connection', (ws, req) => pino.info('connection'))
 
 process.on('uncaughtException', e => {
     pino.error(e);
-    wsk.stop.bind(wsk);
-    wsk.stop();
+    // wsk.stop.bind(wsk);
+    // wsk.stop();
 }).on('SIGINT', function exit(){
         // debug("EXIT");
         wsk.stop();
@@ -108,6 +108,6 @@ try {
     wsk.start();
 }catch(e){
     pino.error(e);
-    wsk.stop();
+    // wsk.stop();
 }
 
