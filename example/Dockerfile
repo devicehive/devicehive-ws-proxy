@@ -7,5 +7,5 @@ WORKDIR ${WORK_DIR}
 
 COPY . ${WORK_DIR}
 
-RUN npm install ws debug
+RUN npm install ws debug pino
 ENTRYPOINT ["node"]
