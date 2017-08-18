@@ -33,9 +33,9 @@ const WSKafka = require('../ws-kafka').WSKafkaProxy,
         debug = require('debug')('ws-kafka:test');
 
 
-conf_module.kafka_config = {
+conf_module.clientConfig = {
         //node-kafka options
-        kafkaHost: 'localhost:9094',
+        kafkaHost: getBrokerList(),
         clientId: 'test-kafka-client-2',
         connectTimeout: 1000,
         requestTimeout: 60000,
@@ -44,22 +44,22 @@ conf_module.kafka_config = {
         no_zookeeper_client: true
     };
 
-    conf_module.websocket_config ={
-        port: 8080
+    conf_module.webSocketConfig ={
+        port: getWebSocketPort()
     };
 
-    conf_module.producer_config = {
+    conf_module.producerConfig = {
         requireAcks: 1,
         ackTimeoutMs: 100,
         partitionerType: 2,
         // custom options
         mq_limit: 20000,
-        mq_interval: 50 //if null, then messages published immediately
+        mq_interval: 200 //if null, then messages published immediately
     };
 
-    conf_module.consumer_config ={
+    conf_module.consumerConfig ={
         // host: 'zookeeper:2181',  // zookeeper host omit if connecting directly to broker (see kafkaHost below)
-        kafkaHost: 'localhost:9094',
+        kafkaHost: getBrokerList(),
         ssl: true, // optional (defaults to false) or tls options hash
         groupId: 'kafka-node-group', //should be set by message to ws
         autoCommit: true,
@@ -85,6 +85,8 @@ conf_module.kafka_config = {
         mq_limit: 5000,
         mq_interval: 50 //if null, then messages published immediately
     };
+
+    conf_module.brokerType = `kafka`;
 
 const wsk = new WSKafka(conf_module);
 

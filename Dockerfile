@@ -26,4 +26,3 @@ RUN npm install \
 EXPOSE 8080
 VOLUME ["/usr/src/app/conf"]
 CMD ["node", "example/wskafka-server.js"]
-#CMD ["pm2-docker", "alt-ws-kafka.js"]
