@@ -7,7 +7,9 @@ const MPS = process.env.MSG_RATE || (cfg.MESSAGE_RATE || 10000 );
 const TOTAL_MSGS = process.env.TOTAL_MSGS || (cfg.TOTAL_MESSAGES || 1000000);
 const TOPIC_COUNT = process.env.TOPICS || (cfg.TOPICS_COUNT || 1);
 
-process.on('uncaughtException', e => console.error(e));
+process
+    .on('uncaughtException', e => console.error(e))
+    .on('SIGINT', () => { process.exit(0) });
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
