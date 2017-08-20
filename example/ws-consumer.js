@@ -25,7 +25,7 @@ const mrate = setInterval(function () {
         pino.info(`processed ${counter} @${rate} msgs/s with average rate ${awg} msgs/s`);
         last_counter = counter;
     }
-}, 5000);
+}, 1000);
 
 ws.on('open', () => {
     subscribeTopics(ws);

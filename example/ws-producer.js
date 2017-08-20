@@ -72,11 +72,13 @@ async function sendPayload(ws){
                     msgs.push(msg)
                 }
                 if(msgs.length > 0){
-                    ws.send(JSON.stringify(msgs));
+                    ws.send(JSON.stringify(msgs), function sent(){
+                        pino.info(`${counter} | ${new Date().getTime() - now} ms`);
+                    });
                     msgs.length = 0;
                 }
 
-                pino.info(`${counter} | ${new Date().getTime() - now} ms`);
+                // pino.info(`${counter} | ${new Date().getTime() - now} ms`);
                 let wait_time = (now + 1000) - new Date().getTime();
                 if (wait_time > 0)
                     await sleep(wait_time);
