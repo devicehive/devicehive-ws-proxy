@@ -46,7 +46,7 @@ try {
         ackTimeoutMs: 100,
         partitionerType: 2,
         // custom options
-        mq_limit: 20000,
+        mq_limit: 40000,
         mq_interval: 200 //if null, then messages published immediately
     };
 
