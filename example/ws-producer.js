@@ -17,7 +17,6 @@ function sleep(ms) {
 
 const ws = new WebSocket(process.env.WSS_URL || cfg.WSS_URL, {perMessageDeflate: false});
 
-let error = false;
 
 ws.on('open', async function open() {
     createTopics(ws);
@@ -33,11 +32,7 @@ ws.on('open', async function open() {
             sendPayload(ws);
         }else if(msg.s != 0){
             console.error(msg);
-            if (!error){
-                setTimeout(sendPayload.bind(this, ws), 45000);
-                error = true;
-            }
-            // process.exit(1);
+            process.exit(1);
         }
     });
 
@@ -91,7 +86,7 @@ async function sendPayload(ws){
 
                 now = new Date().getTime();
             }
-            // process.exit(0);
+            process.exit(0);
             // ws.close(1000);
 
 }

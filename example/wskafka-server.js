@@ -47,7 +47,8 @@ try {
         partitionerType: 2,
         // custom options
         mq_limit: 40000,
-        mq_interval: 200 //if null, then messages published immediately
+        mq_interval: 200, //if null, then messages published immediately
+        buffer_interval: 1000
     };
 
     conf_module.consumerConfig ={
