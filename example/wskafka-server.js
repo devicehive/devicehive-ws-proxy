@@ -46,7 +46,7 @@ try {
         ackTimeoutMs: 100,
         partitionerType: 2,
         // custom options
-        mq_limit: 40000,
+        mq_limit: 20000,
         mq_interval: 200, //if null, then messages published immediately
         buffer_interval: 1000
     };
@@ -57,7 +57,7 @@ try {
         ssl: true, // optional (defaults to false) or tls options hash
         groupId: 'kafka-node-group', //should be set by message to ws
         autoCommit: true,
-        autoCommitIntervalMs: 500,
+        autoCommitIntervalMs: 5,
         // Fetch message config
         fetchMaxWaitMs: 100,
         paused: false,

@@ -11,7 +11,7 @@
   "dependencies": {
     "debug": "^2.6.8",
     "guid": "0.0.12",
-    "kafka-node": "^2.0.1",
+    "kafka-node": "^2.2.3",
     "pino": "^4.7.1",
     "ws": "^3.0.0"
   }

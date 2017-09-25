@@ -67,7 +67,7 @@ async function sendPayload(ws){
                         id: counter++,
                         t: "notif",
                         a: "create",
-                        p: {t: `topic_0`, m: new Date().getTime()}
+                        p: {t: `topic_0`, m: JSON.stringify({date : new Date().getTime(), counter})}
                     };
 
                     msgs.push(msg)

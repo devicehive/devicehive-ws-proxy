@@ -2,6 +2,7 @@ const WebSocket = require('ws'),
     cfg = require('./config-test'),
     debug = require('debug')('ws-consumer');
     const pino = require(`pino`)({level: process.env.LEVEL || 'info'});
+    const fs = require(`fs`);
 
 
 const TOPIC_COUNT = process.env.TOPICS || (cfg.TOPICS_COUNT || 1);
@@ -27,6 +28,8 @@ const mrate = setInterval(function () {
     }
 }, 1000);
 
+// const wrStream = fs.createWriteStream(`./messages`);
+
 ws.on('open', () => {
     subscribeTopics(ws);
 }).on('message', (data) => {
@@ -40,11 +43,11 @@ ws.on('open', () => {
     }else{
         if(Array.isArray(msg)){
             counter += msg.length;
-            handleMsg(msg[0], counter);
-            // msg.forEach(m =>{
-            //     counter++;
-            //     handleMsg(m, counter);
-            // });
+            // handleMsg(msg[0], counter);
+            msg.forEach(m =>{
+                counter++;
+                handleMsg(m, counter);
+            });
 
         }else {
             counter++;
@@ -56,6 +59,7 @@ ws.on('open', () => {
 });
 let cnt = 0;
 function handleMsg(msg, counter, skipCounter = false){
+    // wrStream.write(`${JSON.stringify(msg)}\n`);
     if(Math.floor(counter / 100000) > cnt || skipCounter){
         cnt++;
     // if(counter % 100000 === 0 || skipCounter){
