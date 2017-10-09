@@ -141,8 +141,7 @@ Ack message:
 ```json
 {
   "id" : 1, 
-  "t" : "notification", 
-  "a" : "ack",
+  "t" : "ack",
   "s" : 0,
   "p" : {}
 }
