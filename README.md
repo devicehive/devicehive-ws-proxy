@@ -200,7 +200,8 @@ Subscribe to topic and join consumer group
     "p":
       {
         "t":["topic1","topic2"],
-        "consumer_group":"ingestion_1"
+        "consumer_group":"ingestion_1",
+        "customConsumerConfig" : {}
       }
 }
 ```
@@ -208,6 +209,7 @@ Subscribe to topic and join consumer group
 Payload is the structure of `t` - list of topics and `consumer_group` to join. 
 if `consumer_group` is not specified then default `groupId` from `conf_module.consumer_config`
 will be used.
+You could also specify your own consumer config or just change some of default config fields by passing object in `customConsumerConfig` field.
 
 Response message:
 ```json
