@@ -237,7 +237,11 @@ Response message:
 ```json
 {"id":1320,"t":"notif","a":"create","p":{"t":"topic1", "m":"{custom_message:'msg'}"}}
 ```
-Response message: - No response.
+Response message:
+
+```json
+{"id" : 1320, "t" : "notif", "a" : "create", "s" : 0, "p":{}}
+```
 
 ### Receive
 Notifications are received automatically after subscription.
