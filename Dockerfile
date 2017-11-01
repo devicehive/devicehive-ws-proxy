@@ -23,6 +23,6 @@ COPY . ${WORK_DIR}
 RUN npm install \
     && apk del .gyp
 
-EXPOSE 8080
+EXPOSE 3000
 VOLUME ["/usr/src/app/conf"]
 CMD ["node", "example/wskafka-server.js"]
