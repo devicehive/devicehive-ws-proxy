@@ -7,21 +7,13 @@ RUN mkdir -p ${WORK_DIR} \
 
 WORKDIR ${WORK_DIR}
 
-RUN apk add --no-cache --virtual .gyp \
-        python \
-        make \
-        g++
-#         \
-#        && npm install \
-#        ws \
-#        kafka-node
-
-#RUN npm install pm2 -g
-
 COPY . ${WORK_DIR}
 
-RUN npm install \
+RUN apk update \
+    && apk add --no-cache --virtual .gyp python make g++ \
+    && npm install \
     && apk del .gyp
+
 
 EXPOSE 3000
 VOLUME ["/usr/src/app/conf"]
