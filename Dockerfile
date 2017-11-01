@@ -1,4 +1,4 @@
-FROM node:8.1.4-alpine
+FROM node:8.8.1-alpine
 ENV WORK_DIR=/usr/src/app/
 ENV CONF_DIR=/usr/src/app/conf
 RUN mkdir -p ${WORK_DIR} \
