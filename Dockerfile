@@ -12,6 +12,7 @@ COPY . ${WORK_DIR}
 RUN apk update \
     && apk add --no-cache --virtual .gyp python make g++ \
     && npm install \
+    && npm cache clean --force \
     && apk del .gyp
 
 
