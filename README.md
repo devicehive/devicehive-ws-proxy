@@ -235,7 +235,7 @@ Response message:
 ## Notification
 ### Send
 ```json
-{"id":1320,"t":"notif","a":"create","p":{"t":"topic1", "m":"{custom_message:'msg'}"}}
+{"id":1320,"t":"notif","a":"create","p":{"t":"topic1", "m":"{custom_message:'msg'}", "part" : 1}}
 ```
 Response message:
 
