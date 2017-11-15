@@ -1,5 +1,5 @@
 {
-  "name": "websocket message broker connector",
+  "name": "devicehive-ws-kafka-proxy",
   "version": "1.0.0",
   "description": "WebSocket message broker connector",
   "scripts": {
