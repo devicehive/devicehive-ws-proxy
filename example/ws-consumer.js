@@ -35,22 +35,32 @@ ws.on('open', () => {
 }).on('message', (data) => {
     let msg = JSON.parse(data);
 
-    if(msg.id === "0000"){
+    if(msg.id === "00"){
        if(msg.s === 1){
            ws.close();
            process.exit(1);
        }
     }else{
         if(Array.isArray(msg)){
-            counter += msg.length;
+            //counter += msg.length;
             // handleMsg(msg[0], counter);
             msg.forEach(m =>{
-                counter++;
+                try {
+                    let json = JSON.parse(m.p);
+                    if (json.counter) {
+                        counter++;
+                    }
+                } catch (err) {}
                 handleMsg(m, counter);
             });
 
         }else {
-            counter++;
+            try {
+                let json = JSON.parse(msg.p);
+                if (json.counter) {
+                    counter++;
+                }
+            } catch (err) {}
             handleMsg(msg, counter);
         }
 
@@ -81,7 +91,7 @@ function subscribeTopics(ws) {
     };
 
     for(let i = 0; i < TOPIC_COUNT; i++){
-        msg.p.t.push(`topic_${i}`);
+        msg.p.t.push(`topic_1${i}`);
     }
 
     ws.send(JSON.stringify(msg));

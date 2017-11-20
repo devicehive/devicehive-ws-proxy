@@ -23,6 +23,7 @@ ws.on('open', async function open() {
 })
     .on('error', e => console.error(e))
     .on('message', async function incoming(data) {
+        let localCounter = counter;
         let msg = JSON.parse(data);
         debug(msg);
         if(msg.t === 'topic' && msg.id === "0000" && msg.s === 0){
@@ -31,7 +32,7 @@ ws.on('open', async function open() {
             pino.info(`topics created: ${msg.p}`);
             sendPayload(ws);
         }else if(msg.s != 0){
-            console.error(msg);
+            console.error(msg, localCounter);
             process.exit(1);
         }
     });
@@ -51,10 +52,11 @@ function createTopics(ws) {
     ws.send(JSON.stringify(msg));
 }
 
+let counter = 0;
+
 async function sendPayload(ws){
             let now = new Date().getTime();
-            let counter = 0;
-            pino.info(TOTAL_MSGS);
+            pino.info(`Total: ${TOTAL_MSGS}`);
             while (counter < TOTAL_MSGS) {
 
                 if (ws.readyState > 1) {
@@ -67,12 +69,13 @@ async function sendPayload(ws){
                         id: counter++,
                         t: "notif",
                         a: "create",
-                        p: {t: `topic_0`, m: JSON.stringify({date : new Date().getTime(), counter})}
+                        p: {t: `topic_10`, m: JSON.stringify({date : new Date().getTime(), counter})}
                     };
 
                     msgs.push(msg)
                 }
                 if(msgs.length > 0){
+                    console.log(msgs.length);
                     ws.send(JSON.stringify(msgs), function sent(){
                         pino.info(`${counter} | ${new Date().getTime() - now} ms`);
                     });
@@ -86,6 +89,7 @@ async function sendPayload(ws){
 
                 now = new Date().getTime();
             }
+            console.log(counter);
             process.exit(0);
             // ws.close(1000);
 
