@@ -33,9 +33,9 @@ const WSKafka = require('../ws-kafka').WSKafkaProxy,
         debug = require('debug')('ws-kafka:test');
 
 
-conf_module.kafka_config = {
+conf_module.clientConfig = {
         //node-kafka options
-        kafkaHost: 'localhost:9094',
+        kafkaHost: getBrokerList(),
         clientId: 'test-kafka-client-2',
         connectTimeout: 1000,
         requestTimeout: 60000,
@@ -44,22 +44,22 @@ conf_module.kafka_config = {
         no_zookeeper_client: true
     };
 
-    conf_module.websocket_config ={
-        port: 8080
+    conf_module.webSocketConfig ={
+        port: getWebSocketPort()
     };
 
-    conf_module.producer_config = {
+    conf_module.producerConfig = {
         requireAcks: 1,
         ackTimeoutMs: 100,
         partitionerType: 2,
         // custom options
         mq_limit: 20000,
-        mq_interval: 50 //if null, then messages published immediately
+        mq_interval: 200 //if null, then messages published immediately
     };
 
-    conf_module.consumer_config ={
+    conf_module.consumerConfig ={
         // host: 'zookeeper:2181',  // zookeeper host omit if connecting directly to broker (see kafkaHost below)
-        kafkaHost: 'localhost:9094',
+        kafkaHost: getBrokerList(),
         ssl: true, // optional (defaults to false) or tls options hash
         groupId: 'kafka-node-group', //should be set by message to ws
         autoCommit: true,
@@ -85,6 +85,8 @@ conf_module.kafka_config = {
         mq_limit: 5000,
         mq_interval: 50 //if null, then messages published immediately
     };
+
+    conf_module.brokerType = `kafka`;
 
 const wsk = new WSKafka(conf_module);
 
@@ -115,8 +117,7 @@ producer_config and consumer_config objects both have two custom options
 All messages are `JSON` based. Generic message structure looks like this:
 ```json
 {
-  "id":"any_id",
-  "refid":"id of orignial message",
+  "id":"id or original message",
   "t":"message type",
   "a":"action",
   "s":"success",
@@ -126,14 +127,28 @@ All messages are `JSON` based. Generic message structure looks like this:
 
 | Param | Type | Description |
 | --- | --- | --- |
-| id | `String or Int` | Message identifier |
-| refid | `String or Int` | Original Message Id, returned by server |
+| id | `String or Int` | Original Message Id |
 | t | `String` | Type: ["topic","notif","health"] |
-| a | `String` | Action: ["create","list","subscribe","unsubscribe"]|
+| a | `String` | Action: ["create","list","subscribe","unsubscribe", "ack"]|
 | s | `Int` | Status, returned by the server, 0 if OK. |
 | p | `String` | Custom payload |
 
 Server can receive an list of messages in one batch.
+
+`NOTE:` You will get ack message on any message you send to Proxy. This means that Proxy has received message, will process and push it to Kafka.
+
+Ack message:
+```json
+{
+  "id" : 1, 
+  "t" : "ack",
+  "s" : 0,
+  "p" : {}
+}
+```
+
+In case of errors you will have error message in `"p"` field and `"s" : 1`
+
 ## Topics
 ### Create
 ```json
@@ -144,13 +159,13 @@ Server can receive an list of messages in one batch.
   "p":["topic1", "topic2", "topicN"]
 }
 ```
-`NOTE:` kafka-node does not support confiuration of number of paritions per particular topic.
+`NOTE:` kafka-node does not support configuration of number of partitions per particular topic.
 You can only use Kafka broker setting for now `KAFKA_NUM_PARTITIONS` in docker or `num.partitions` in Kafka config. 
 
 Response message:
 
 ```json
-{"id":1,"refid":1,"t":"topic","a":"create","s":0,"p":["topic1","topic2","topicN"]}
+{"id":1, "t":"topic","a":"create","s":0,"p":["topic1","topic2","topicN"]}
 ```
 
 #### List
@@ -165,8 +180,7 @@ Response message:
 
 ```json
 {
-  "id":6,
-  "refid":23,
+  "id":23,
   "t":"topic",
   "a":"list",
   "s":0,
@@ -185,7 +199,8 @@ Subscribe to topic and join consumer group
     "p":
       {
         "t":["topic1","topic2"],
-        "consumer_group":"ingestion_1"
+        "consumer_group":"ingestion_1",
+        "customConsumerConfig" : {}
       }
 }
 ```
@@ -193,10 +208,11 @@ Subscribe to topic and join consumer group
 Payload is the structure of `t` - list of topics and `consumer_group` to join. 
 if `consumer_group` is not specified then default `groupId` from `conf_module.consumer_config`
 will be used.
+You could also specify your own consumer config or just change some of default config fields by passing object in `customConsumerConfig` field.
 
 Response message:
 ```json
-{"id":0,"refid":1000,"t":"topic","a":"subscribe","p":["topic1","topic2"],"s":0}
+{"id":1000,"t":"topic","a":"subscribe","p":["topic1","topic2"],"s":0}
 ```
 
 All notifications from Kafka will be sent to the same WebSocket connection where the subscription was made.  
@@ -213,22 +229,26 @@ Unsubscribe from topics and consumer group
 
 Response message:
 ```json
-{"id":567,"refid":1300,"t":"topic","a":"unsubscribe","s":0}
+{"id":1300,"t":"topic","a":"unsubscribe","s":0}
 ```
 
 ## Notification
 ### Send
 ```json
-{"id":1320,"t":"notif","a":"create","p":{"t":"topic1", "m":"{custom_message:'msg'}"}}
+{"id":1320,"t":"notif","a":"create","p":{"t":"topic1", "m":"{custom_message:'msg'}", "part" : 1}}
 ```
-Response message: - No response. `TODO:` Need to create an option to receive acknowledgement receipt.   
+Response message:
+
+```json
+{"id" : 1320, "t" : "notif", "a" : "create", "s" : 0, "p":{}}
+```
 
 ### Receive
 Notifications are received automatically after subscription.
 ```json
-[{"id":3,"t":"notif","p":"hello"}]
+[{"id":1320,"t":"notif","p":"hello"}]
 ```
-A list of notifications with the payload which was sent using send notificaiton message.
+A list of notifications with the payload which was sent using send notification message.
 
 ## Healthcheck
 ```json
@@ -240,6 +260,6 @@ A list of notifications with the payload which was sent using send notificaiton 
 
 Response message:
 ```json
-{"id":5,"refid":1500,"t":"health","s":0,"p":{"consumers":[{"ws":1,"topics":["topic1","topic2"]}]}}
+{"id":1500,"t":"health","s":0,"p":{"status": "available|failed"}}
 ```
-Payload contains a list of consumers and topics currently connected to web socket server.
+Payload contains current status of Kafka broker.

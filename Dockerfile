@@ -1,4 +1,13 @@
-FROM node:8.1.4-alpine
+FROM node:8.8.1-alpine
+
+MAINTAINER devicehive
+
+LABEL org.label-schema.url="https://devicehive.com" \
+      org.label-schema.vendor="DeviceHive" \
+      org.label-schema.vcs-url="https://github.com/devicehive/devicehive-ws-kafka-proxy" \
+      org.label-schema.name="devicehive-ws-kafka-proxy" \
+      org.label-schema.version="development"
+
 ENV WORK_DIR=/usr/src/app/
 ENV CONF_DIR=/usr/src/app/conf
 RUN mkdir -p ${WORK_DIR} \
@@ -7,23 +16,15 @@ RUN mkdir -p ${WORK_DIR} \
 
 WORKDIR ${WORK_DIR}
 
-RUN apk add --no-cache --virtual .gyp \
-        python \
-        make \
-        g++
-#         \
-#        && npm install \
-#        ws \
-#        kafka-node
-
-#RUN npm install pm2 -g
-
 COPY . ${WORK_DIR}
 
-RUN npm install \
+RUN apk update \
+    && apk add --no-cache --virtual .gyp python make g++ \
+    && npm install \
+    && npm cache clean --force \
     && apk del .gyp
 
-EXPOSE 8080
+
+EXPOSE 3000
 VOLUME ["/usr/src/app/conf"]
 CMD ["node", "example/wskafka-server.js"]
-#CMD ["pm2-docker", "alt-ws-kafka.js"]

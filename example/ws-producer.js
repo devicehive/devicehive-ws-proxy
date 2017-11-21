@@ -1,31 +1,40 @@
 const WebSocket = require('ws'),
     cfg = require('./config-test'),
     debug = require('debug')('ws-producer');
+    const pino = require(`pino`)({level: process.env.LEVEL || 'info'});
 
 const MPS = process.env.MSG_RATE || (cfg.MESSAGE_RATE || 10000 );
 const TOTAL_MSGS = process.env.TOTAL_MSGS || (cfg.TOTAL_MESSAGES || 1000000);
 const TOPIC_COUNT = process.env.TOPICS || (cfg.TOPICS_COUNT || 1);
 
-console.log(MPS);
-process.on('uncaughtException', e => console.error(e));
+process
+    .on('uncaughtException', e => console.error(e))
+    .on('SIGINT', () => { process.exit(0) });
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-const ws = new WebSocket(process.env.WSS_URL || cfg.WSS_URL);
+const ws = new WebSocket(process.env.WSS_URL || cfg.WSS_URL, {perMessageDeflate: false});
+
 
 ws.on('open', async function open() {
     createTopics(ws);
 })
     .on('error', e => console.error(e))
     .on('message', async function incoming(data) {
+        let localCounter = counter;
         let msg = JSON.parse(data);
-        if(msg.refid === "0000" && msg.s === 0){
-            debug(`topics created: ${msg.p}`);
+        debug(msg);
+        if(msg.t === 'topic' && msg.id === "0000" && msg.s === 0){
+            // ws.removeEventListener('message', incoming);
+            pino.info(msg);
+            pino.info(`topics created: ${msg.p}`);
             sendPayload(ws);
+        }else if(msg.s != 0){
+            console.error(msg, localCounter);
+            process.exit(1);
         }
-
     });
 
 function createTopics(ws) {
@@ -39,20 +48,19 @@ function createTopics(ws) {
     for(let i = 0; i < TOPIC_COUNT; i++){
         msg.p.push(`topic_${i}`);
     }
-
+    pino.info(msg);
     ws.send(JSON.stringify(msg));
 }
 
+let counter = 0;
+
 async function sendPayload(ws){
-
-        try{
             let now = new Date().getTime();
-            let counter = 0;
-
+            pino.info(`Total: ${TOTAL_MSGS}`);
             while (counter < TOTAL_MSGS) {
 
                 if (ws.readyState > 1) {
-                    debug(`WebSocket State ${ws.readyState}`);
+                    // debug(`WebSocket State ${ws.readyState}`);
                 }
                 let msgs = [];
 
@@ -61,30 +69,29 @@ async function sendPayload(ws){
                         id: counter++,
                         t: "notif",
                         a: "create",
-                        p: {t: `topic_${rand(0, TOPIC_COUNT - 1)}`, m: new Date().getTime()}
+                        p: {t: `topic_10`, m: JSON.stringify({date : new Date().getTime(), counter})}
                     };
 
                     msgs.push(msg)
                 }
-
                 if(msgs.length > 0){
-                    ws.send(JSON.stringify(msgs));
+                    console.log(msgs.length);
+                    ws.send(JSON.stringify(msgs), function sent(){
+                        pino.info(`${counter} | ${new Date().getTime() - now} ms`);
+                    });
                     msgs.length = 0;
                 }
 
-                debug(`${counter} | ${new Date().getTime() - now} ms`);
+                // pino.info(`${counter} | ${new Date().getTime() - now} ms`);
                 let wait_time = (now + 1000) - new Date().getTime();
                 if (wait_time > 0)
                     await sleep(wait_time);
 
                 now = new Date().getTime();
             }
-            ws.close(1000);
-
-        } catch (e) {
-            console.error(e);
-
-        }
+            console.log(counter);
+            process.exit(0);
+            // ws.close(1000);
 
 }
 

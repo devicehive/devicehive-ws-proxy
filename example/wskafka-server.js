@@ -1,9 +1,10 @@
 'use strict';
 
-const WSKafka = require('../ws-kafka').WSKafkaProxy,
+const WSKafka = require('../index').WSProxy,
     debug = require('debug')('ws-kafka:test'),
     cfg = require('./config'),
     path = require('path');
+    const pino = require(`pino`)();
 
 let conf_module = {};
 
@@ -17,15 +18,15 @@ function getWebSocketPort(){
 
 try {
 
-    if (process.env.CONF_DIR) {
+    // if (process.env.CONF_DIR) {
         const p = path.format({dir: process.env.CONF_DIR,  base: 'ws_kafka_config' });
         conf_module = require(p);
         debug(`config loaded form ${p}`);
-    }
+    // }
 }catch(e){
     debug(`default config loaded`);
 
-    conf_module.kafka_config = {
+    conf_module.clientConfig = {
         //node-kafka options
         kafkaHost: getBrokerList(),
         clientId: 'test-kafka-client-2',
@@ -36,26 +37,27 @@ try {
         no_zookeeper_client: true
     };
 
-    conf_module.websocket_config ={
+    conf_module.webSocketConfig ={
         port: getWebSocketPort()
     };
 
-    conf_module.producer_config = {
+    conf_module.producerConfig = {
         requireAcks: 1,
         ackTimeoutMs: 100,
         partitionerType: 2,
         // custom options
         mq_limit: 20000,
-        mq_interval: 200 //if null, then messages published immediately
+        mq_interval: 200, //if null, then messages published immediately
+        buffer_interval: 1000
     };
 
-    conf_module.consumer_config ={
+    conf_module.consumerConfig ={
         // host: 'zookeeper:2181',  // zookeeper host omit if connecting directly to broker (see kafkaHost below)
         kafkaHost: getBrokerList(),
         ssl: true, // optional (defaults to false) or tls options hash
         groupId: 'kafka-node-group', //should be set by message to ws
         autoCommit: true,
-        autoCommitIntervalMs: 500,
+        autoCommitIntervalMs: 5,
         // Fetch message config
         fetchMaxWaitMs: 100,
         paused: false,
@@ -77,27 +79,28 @@ try {
         mq_limit: 5000,
         mq_interval: 50 //if null, then messages published immediately
     };
+
+    conf_module.brokerType = `kafka`;
 }
 
 const wsk = new WSKafka(conf_module);
 
-wsk.on('ws-connection', (ws, req) => debug('connection'))
-    .on('ws-close', () => debug('ws-close'))
-    .on('wss-ready', () => debug('wss-ready'))
-    .on('producer-ready', () => debug('producer-ready'))
-    .on('producer-error', (e) => console.log(`producer-error ${e}`))
-    .on('consumer-ready', () => debug('consumer-ready'))
-    .on('consumer-error', (e) => console.log(`consumer-error ${e}`))
+wsk.on('ws-connection', (ws, req) => pino.info('connection'))
+    .on('ws-close', () => pino.info('ws-close'))
+    .on('wss-ready', () => pino.info('wss-ready'))
+    .on('producer-ready', () => pino.info('producer-ready'))
+    .on('producer-error', (e) => pino.info(`producer-error ${e}`))
+    .on('consumer-ready', () => pino.info('consumer-ready'))
+    .on('consumer-error', (e) => pino.info(`consumer-error ${e}`))
     .on('consumer-message', () => {})
-    .on('error', (e) => console.log(`error ${e}`));
-
+    .on('error', (e) => pino.info(`error ${e}`));
 
 process.on('uncaughtException', e => {
-    debug(e);
-    wsk.stop.bind(wsk);
-    wsk.stop();
+    pino.error(e);
+    // wsk.stop.bind(wsk);
+    // wsk.stop();
 }).on('SIGINT', function exit(){
-        debug("EXIT");
+        // debug("EXIT");
         wsk.stop();
     }
 );
@@ -105,7 +108,7 @@ process.on('uncaughtException', e => {
 try {
     wsk.start();
 }catch(e){
-    debug(e);
-    wsk.stop();
+    pino.error(e);
+    // wsk.stop();
 }
 

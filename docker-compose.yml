@@ -35,26 +35,62 @@ services:
       links:
         - kafka
   node_2:
+      build: .
+      ports:
+        - "8081:8081"
+      environment:
+        KAFKA_MBR: "${HOST:-kafka}:9094"
+        DEBUG: ${DEBUG}
+        WSS_PORT: ${WSS_PORT:-8081}
+      volumes:
+        - ${CONF_PATH:-./example/configs/}:/usr/src/app/conf:ro
+      links:
+        - kafka
+  node_3:
+      build: .
+      ports:
+        - "8082:8082"
+      environment:
+        KAFKA_MBR: "${HOST:-kafka}:9094"
+        DEBUG: ${DEBUG}
+        WSS_PORT: ${WSS_PORT:-8082}
+      volumes:
+        - ${CONF_PATH:-./example/configs/}:/usr/src/app/conf:ro
+      links:
+        - kafka
+  node_4:
+      build: .
+      ports:
+        - "8083:8083"
+      environment:
+        KAFKA_MBR: "${HOST:-kafka}:9094"
+        DEBUG: ${DEBUG}
+        WSS_PORT: ${WSS_PORT:-8083}
+      volumes:
+        - ${CONF_PATH:-./example/configs/}:/usr/src/app/conf:ro
+      links:
+        - kafka
+  node_5:
+      build: .
+      ports:
+        - "8084:8084"
+      environment:
+        KAFKA_MBR: "${HOST:-kafka}:9094"
+        DEBUG: ${DEBUG}
+        WSS_PORT: ${WSS_PORT:-8084}
+      volumes:
+        - ${CONF_PATH:-./example/configs/}:/usr/src/app/conf:ro
+      links:
+        - kafka
+  node_6:
         build: .
         ports:
-          - "8081:8081"
+          - "8090:8090"
         environment:
           KAFKA_MBR: "${HOST:-kafka}:9094"
           DEBUG: ${DEBUG}
-          WSS_PORT: ${WSS_PORT:-8081}
+          WSS_PORT: ${WSS_PORT:-8090}
         volumes:
           - ${CONF_PATH:-./example/configs/}:/usr/src/app/conf:ro
         links:
           - kafka
-  node_3:
-          build: .
-          ports:
-            - "8082:8082"
-          environment:
-            KAFKA_MBR: "${HOST:-kafka}:9094"
-            DEBUG: ${DEBUG}
-            WSS_PORT: ${WSS_PORT:-8082}
-          volumes:
-            - ${CONF_PATH:-./example/configs/}:/usr/src/app/conf:ro
-          links:
-            - kafka
