@@ -27,4 +27,4 @@ RUN apk update \
 
 EXPOSE 3000
 VOLUME ["/usr/src/app/conf"]
-CMD ["node", "example/wskafka-server.js"]
+CMD ["node", "application/wskafka-server.js"]

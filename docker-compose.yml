@@ -31,7 +31,7 @@ services:
         DEBUG: ${DEBUG}
         WSS_PORT: ${WSS_PORT:-8080}
       volumes:
-        - ${CONF_PATH:-./example/configs/}:/usr/src/app/conf:ro
+        - ${CONF_PATH:-./application/configs/}:/usr/src/app/conf:ro
       links:
         - kafka
   node_2:
@@ -43,7 +43,7 @@ services:
         DEBUG: ${DEBUG}
         WSS_PORT: ${WSS_PORT:-8081}
       volumes:
-        - ${CONF_PATH:-./example/configs/}:/usr/src/app/conf:ro
+        - ${CONF_PATH:-./application/configs/}:/usr/src/app/conf:ro
       links:
         - kafka
   node_3:
@@ -55,7 +55,7 @@ services:
         DEBUG: ${DEBUG}
         WSS_PORT: ${WSS_PORT:-8082}
       volumes:
-        - ${CONF_PATH:-./example/configs/}:/usr/src/app/conf:ro
+        - ${CONF_PATH:-./application/configs/}:/usr/src/app/conf:ro
       links:
         - kafka
   node_4:
@@ -67,7 +67,7 @@ services:
         DEBUG: ${DEBUG}
         WSS_PORT: ${WSS_PORT:-8083}
       volumes:
-        - ${CONF_PATH:-./example/configs/}:/usr/src/app/conf:ro
+        - ${CONF_PATH:-./application/configs/}:/usr/src/app/conf:ro
       links:
         - kafka
   node_5:
@@ -79,7 +79,7 @@ services:
         DEBUG: ${DEBUG}
         WSS_PORT: ${WSS_PORT:-8084}
       volumes:
-        - ${CONF_PATH:-./example/configs/}:/usr/src/app/conf:ro
+        - ${CONF_PATH:-./application/configs/}:/usr/src/app/conf:ro
       links:
         - kafka
   node_6:
@@ -91,6 +91,6 @@ services:
           DEBUG: ${DEBUG}
           WSS_PORT: ${WSS_PORT:-8090}
         volumes:
-          - ${CONF_PATH:-./example/configs/}:/usr/src/app/conf:ro
+          - ${CONF_PATH:-./application/configs/}:/usr/src/app/conf:ro
         links:
           - kafka
