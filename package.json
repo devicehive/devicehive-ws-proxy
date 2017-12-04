@@ -10,6 +10,7 @@
   "license": "Apache 2.0",
   "dependencies": {
     "debug": "^2.6.9",
+    "fifo": "^2.3.0",
     "guid": "0.0.12",
     "kafka-node": "^2.3.0",
     "pino": "^4.10.2",

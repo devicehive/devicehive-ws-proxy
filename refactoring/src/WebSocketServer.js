@@ -55,6 +55,13 @@ class WebSocketServer extends EventEmitter {
 		return me.clientIdMap.get(id);
 	}
 
+	send(id, data) {
+	    const me = this;
+	    const client = me.getClientById(id);
+
+	    client.send(data);
+    }
+
 	_processNewConnection(ws) {
 		const me = this;
 		const clientId = uuid();
