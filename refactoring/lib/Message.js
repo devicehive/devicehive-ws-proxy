@@ -2,8 +2,8 @@
 class Message {
 
     static get TOPIC_TYPE() { return `topic`; }
-    static get NOTIF_TYPE() { return `notif`; }
-    static get HEALTH_TYPE() { return `health`; }
+    static get NOTIFICATION_TYPE() { return `notif`; }
+    static get HEALTH_CHECK_TYPE() { return `health`; }
     static get PLUGIN_TYPE() { return `plugin`; }
     static get ACK_TYPE() { return `ack`; }
 

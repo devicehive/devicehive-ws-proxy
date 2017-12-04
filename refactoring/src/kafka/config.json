@@ -1,0 +1,4 @@
+{
+    "KAFKA_HOSTS": "localhost:9092",
+    "KAFKA_CLIENT_PREFIX": "ws-proxy-kafka-client"
+}

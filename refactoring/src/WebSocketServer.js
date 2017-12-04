@@ -1,3 +1,4 @@
+const Config = require(`./config.json`);
 const EventEmitter = require(`events`);
 const WebSocket = require(`ws`);
 const debug = require(`debug`)(`websocketserver`);
@@ -23,9 +24,10 @@ class WebSocketServer extends EventEmitter {
 
 		me.isReady = false;
 		me.clientIdMap = new Map();
+		me.clientIdAuthenticationMap = new Map();
 		me.wsServer = new WebSocket.Server({
-			host: `localhost`,
-			port: `3000`,
+			host: Config.WEB_SOCKET_SERVER_HOST,
+			port: Config.WEB_SOCKET_SERVER_PORT,
 			clientTracking: true,
 			verifyClient: () => true
 		});
@@ -62,11 +64,24 @@ class WebSocketServer extends EventEmitter {
 	    client.send(data);
     }
 
+    authenticateClient(clientId) {
+		const me = this;
+
+		me.clientIdAuthenticationMap.set(clientId, true);
+    }
+
+	isClientAuthenticated(clientId) {
+		const me = this;
+
+		return me.clientIdAuthenticationMap.get(clientId) === true;
+	}
+
 	_processNewConnection(ws) {
 		const me = this;
 		const clientId = uuid();
 
 		me.clientIdMap.set(clientId, ws);
+		me.clientIdAuthenticationMap.set(clientId, true); //TODO
 
 		debug(`New connection with id ${clientId} established`);
 		me.emit(WebSocketServer.CLIENT_CONNECT_EVENT, clientId);
@@ -79,6 +94,7 @@ class WebSocketServer extends EventEmitter {
 		ws.on(`close`, (code, reason) => {
 			debug(`Client ${clientId} has closed the connection with code: ${code} and reason: ${reason}`);
 			me.clientIdMap.delete(clientId);
+			me.clientIdAuthenticationMap.delete(clientId);
 			me.emit(WebSocketServer.CLIENT_DISCONNECT_EVENT, clientId);
 		});
 	}

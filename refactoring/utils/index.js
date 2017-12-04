@@ -9,6 +9,21 @@ class Utils {
         }
     }
 
+	static map(array, callback) {
+		if (Array.isArray(array)) {
+			return array.map(callback);
+		} else {
+			return [array].map(callback);
+		}
+	}
+
+	static toArray(array) {
+		if (Array.isArray(array)) {
+			return array;
+		} else {
+			return [array];
+		}
+    }
 }
 
 
