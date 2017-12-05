@@ -1,200 +1,244 @@
+const EventEmitter = require(`events`);
 const Utils = require(`../../utils`);
 const Config = require(`./config.json`);
-const { KafkaClient } = require(`kafka-node`);
-const KafkaConsumerGroup = require(`./KafkaConsumerGroup`);
-const KafkaProducer = require(`./KafkaProducer`);
+const NoKafka = require(`no-kafka`);
 const uuid = require(`uuid/v1`);
-const stringHash = require("string-hash");
 const debug = require(`debug`)(`kafka`);
 
 
 /**
  *
  */
-class Kafka extends KafkaClient {
+class Kafka extends EventEmitter {
 
-    static get INTERNAL_TOPIC_PREFIX() { return `__` };
-
-    static generateKafkaClientId() {
-	    return `${Config.KAFKA_CLIENT_PREFIX}-${uuid()}`;
-    }
+	static get INTERNAL_TOPIC_PREFIX() { return `__` };
+	static get HEALTH_TOPIC() { return `__health__` };
 
 	constructor() {
-        super({
-            kafkaHost: Config.KAFKA_HOSTS,
-            clientId: Kafka.generateKafkaClientId(),
-            connectTimeout: 1000,
-            requestTimeout: 60000,
-            autoConnect: true,
-        });
+		super();
 
         const me = this;
+		const clientUUID = uuid();
 
         me.isProducerReady = false;
-        me.isMetadataNeedUpdate = true;
+        me.isConsumerReady = false;
+        me.available = true;
         me.subscriptionMap = new Map();
+        me.producer = new NoKafka.Producer({
+	        clientId: `${Config.KAFKA_CLIENT_ID}-${clientUUID}`,
+	        connectionString: Config.KAFKA_HOSTS,
+	        logger: {
+		        logLevel: Config.LOGGER_LEVEL
+	        }
+        });
+		me.consumer = new NoKafka.GroupConsumer({
+			clientId: `${Config.KAFKA_CLIENT_ID}-${clientUUID}`,
+			connectionString: Config.KAFKA_HOSTS,
+			groupId: Config.CONSUMER_GROUP_ID,
+			logger: {
+				logLevel: Config.LOGGER_LEVEL
+			}
+		});
 
-        me.producer = new KafkaProducer(me);
-        me.consumer = new KafkaConsumerGroup([`__health__`]);
+        me.producer
+			.init()
+			.then(() => {
+                me.isProducerReady = true;
+				debug(`Producer is ready`);
+                me.emit(`producerReady`);
+			})
+			.catch((error) => {
+				debug(`Producer error: ${error}`);
+                me.isProducerReady = false;
+			});
+
+        me.on(`producerReady`, () => {
+	        me.createTopics([ Kafka.HEALTH_TOPIC ])
+		        .then((topics) => {
+			        me.consumer
+				        .init({
+					        strategy: NoKafka.RoundRobinAssignment,
+					        subscriptions: topics,
+					        handler: (messageSet, topic, partition) => me._onMessage(messageSet, topic, partition)
+				        })
+				        .then(() => {
+					        me.isConsumerReady = true;
+					        debug(`Consumer is ready`);
+					        me.emit(`consumerReady`);
+				        })
+				        .catch((error) => {
+					        debug(`Consumer error: ${error}`);
+					        me.isConsumerReady = false;
+				        });
+		        });
+        });
     }
 
     getProducer() {
         const me = this;
 
-        return me.producer.isReady ?
+        return me.isProducerReady ?
             Promise.resolve(me.producer) :
-            new Promise((resolve) => me.producer.on(`ready`, () => resolve(me.producer)));
+            new Promise((resolve) => me.on(`producerReady`, () => resolve(me.producer)));
     }
 
 	getConsumer() {
 		const me = this;
 
-		return me.consumer.isReady ?
+		return me.isConsumerReady ?
 			Promise.resolve(me.consumer) :
-			new Promise((resolve) => me.consumer.on(`ready`, () => resolve(me.consumer)));
-	}
-
-	//TODO
-    addTopicsToConsumer(topicsList) {
-        const me = this;
-
-        return new Promise ((resolve, reject) => {
-            me.getConsumer()
-                .then((consumer) => {
-	                consumer.addTopics(topicsList, (error, added) => {
-                        error ? reject(error) : resolve(added);
-                    });
-                });
-	    });
-    }
-
-    //TODO
-    removeTopicsFromConsumer(topicsList) {
-	    const me = this;
-
-	    return new Promise ((resolve, reject) => {
-		    me.getConsumer()
-			    .then((consumer) => {
-				    consumer.removeTopics(topicsList, (error, removed) => {
-					    error ? reject(error) : resolve(removed);
-				    });
-			    });
-	    });
-    }
-
-    createTopicsConsumer() {
-
+			new Promise((resolve) => me.on(`consumerReady`, () => resolve(me.consumer)));
 	}
 
 
-	createClientTopics(topicsList) {
+	createTopics(topicsList) {
 		const me = this;
 
-		return new Promise((resolve, reject) => {
-			me.getProducer()
-				.then((producer) => {
-					producer.createTopics(topicsList, true, (error, data) => {
-						me.isMetadataNeedUpdate = true;
-						error ? reject(error) : resolve(data);
-					});
-				});
-		});
+		return me.getProducer()
+			.then((producer) => producer.client.metadataRequest(topicsList))
+			.then(() => {
+				debug(`Next topics has been created: ${topicsList}`);
+				return topicsList;
+			});
 	}
 
 	listTopics() {
 		const me = this;
 
-		return new Promise((resolve, reject) => {
-			me.loadMetadataForTopics([], (error, metadata) => {
-				if (error) {
-					reject(error);
-				} else {
-					const result = [];
-					const topicsObject = metadata[1].metadata;
-					const topics = Object.keys(topicsObject);
+		return me.getProducer()
+			.then((producer) => producer.client.metadataRequest())
+			.then((metadata) => {
+				const result = [];
 
-					me.updateMetadatas(metadata);
-					me.isMetadataNeedUpdate = false;
-
-					topics.forEach(topic => {
-						if (topicsObject[topic]) {
-							const partitions = Object.keys(topicsObject[topic]).filter(
-							    topic => !topic.startsWith(Kafka.INTERNAL_TOPIC_PREFIX));
-
-							partitions.forEach(partition => result.push({
-								topic: topic,
-								partition: parseInt(partition, 10)
-							}));
-						}
+				metadata.topicMetadata
+					.filter((topicObject) => !topicObject.topicName.startsWith(Kafka.INTERNAL_TOPIC_PREFIX))
+					.forEach((topicObject) => {
+						topicObject.partitionMetadata.forEach((topicPartitionData) => {
+							result.push({ topic: topicObject.topicName, partition: topicPartitionData.partitionId })
+						});
 					});
 
-					return resolve(result);
-				}
+				return result;
 			});
-		});
 	}
 
 	subscribe(subscriberId, topicsList) {
 		const me = this;
+		const topicsToSubscribe = [];
 
-		return me.addTopicsToConsumer(topicsList)
-			.then((added) => {
-				topicsList.forEach((topic) => {
-					let subscribersIdSet = me.subscriptionMap.get(topic);
+		return me.getConsumer()
+			.then((consumer) => {
+				topicsList.forEach((topicName) => {
+					let subscriptionSet = me.subscriptionMap.get(topicName);
 
-					if (subscribersIdSet) {
-						subscribersIdSet.add(subscriberId);
-					} else {
-						subscribersIdSet = new Set().add(subscriberId);
-						me.subscriptionMap.set(topic, subscribersIdSet);
-					}
+					subscriptionSet ? subscriptionSet.add(subscriberId) : topicsToSubscribe.push(topicName);
 				});
 
-				return added;
+				return Promise.all(topicsToSubscribe.map(topicName => consumer.subscribe(topicName,
+					(messageSet, topics, partition) => me._onMessage(messageSet, topics, partition))))
+			})
+			.then(() => {
+				topicsToSubscribe.forEach((topicName) => {
+					me.subscriptionMap.set(topicName, new Set().add(subscriberId));
+				});
+
+				debug(`Subscriber with id: ${subscriberId} has subscribed to the next topics: ${topicsList}`);
+
+				return topicsList;
 			});
 	}
 
 	unsubscribe(subscriberId, topicsList) {
 		const me = this;
+		const topicsToUnsubscribe = [];
 
-		return new Promise(() => {
-			topicsList.forEach((topic) => {
-				let subscribersIdSet = me.subscriptionMap.get(topic);
+		return me.getConsumer()
+			.then((consumer) => {
+				topicsList.forEach((topicName) => {
+					let subscriptionSet = me.subscriptionMap.get(topicName);
 
-				if (subscribersIdSet) {
-					subscribersIdSet.delete(subscriberId);
-				}
+					if (subscriptionSet) {
+						subscriptionSet.delete(subscriberId);
+						if (subscriptionSet.size === 0) {
+							topicsToUnsubscribe.push(topicName);
+						}
+					}
+				});
 
-				return subscribersIdSet.size === 0 ? me.removeTopicsFromConsumer(topicsList) : undefined;
+				return Promise.all(topicsToUnsubscribe.map(topicName => consumer.unsubscribe(topicName)))
+			})
+			.then(() => {
+				topicsToUnsubscribe.forEach((topicName) => {
+					me.subscriptionMap.delete(topicName);
+				});
+
+				debug(`Subscriber with id: ${subscriberId} has unsubscribed from the next topics: ${topicsList}`);
+
+				return topicsList
 			});
-        });
 	}
 
-	sendData(payload) {
+	send(payload) {
 		const me = this;
 
-		return new Promise((resolve, reject) => {
-			me.getProducer()
-				.then((producer) => {
-			        if (me.isMetadataNeedUpdate === true) {
-				        me.loadMetadataForTopics([], (error, metadata) => {
-					        if (error) {
-						        reject(error);
-					        } else {
-						        me.kafka.updateMetadatas(metadata);
-						        me.isMetadataNeedUpdate = false;
+		return me.getProducer()
+			.then((producer) => producer.send(payload))
+			.catch((error) => {
+				console.log(`============== ERROR =============`);
+				console.log(error);
+			});
+	}
 
-						        producer.send(Utils.toArray(payload), (error, data) => {
-							        error ? reject(error) : resolve(data);
-						        });
-					        }
-				        });
-			        } else {
-				        producer.send(Utils.toArray(payload), (error, data) => {
-					        error ? reject(error) : resolve(data);
-				        });
-                    }
+	removeSubscriber(subscriberId) {
+		const me = this;
+		const topicsToUnsubscribe = [];
+
+		me.subscriptionMap.forEach((subscribersSet, topic) => {
+			if (subscribersSet.has(subscriberId)) {
+				topicsToUnsubscribe.push(topic);
+			}
+		});
+
+		if (topicsToUnsubscribe.length > 0) {
+			me.unsubscribe(subscriberId, topicsToUnsubscribe);r
+		}
+	}
+
+	isAvailable() {
+		const me = this;
+		const initialConsumerBrokers = me.consumer.client.initialBrokers;
+		const consumerBrokerConnections = me.consumer.client.brokerConnections;
+
+		const isConsumerAvailable = Object.keys(initialConsumerBrokers).reduce((isPreviousAvailable, brokerIndex) => {
+			return isPreviousAvailable ? true :
+				(initialConsumerBrokers[brokerIndex].connected || consumerBrokerConnections[brokerIndex].connected);
+		}, false);
+
+		if (me.available === false && isConsumerAvailable === true) {
+			return me.subscribe(Array.from(me.subscriptionMap.keys()))
+				.then(() => {
+					me.available = isConsumerAvailable;
+					return me.available;
 				});
+		} else {
+			me.available = isConsumerAvailable;
+			return me.available ? Promise.resolve(me.available) : Promise.reject(me.available);
+		}
+	}
+
+	_onMessage(messageSet, topics, partition) {
+		const me = this;
+
+		Utils.forEach(topics, (topic) => {
+			const subscriptionSet = me.subscriptionMap.get(topic);
+
+			if (subscriptionSet) {
+				subscriptionSet.forEach((subscriberId) => {
+					messageSet.forEach((message) => {
+						me.emit(`message`, subscriberId, topic, message.message, partition);
+					});
+				});
+			}
 		});
 	}
 }

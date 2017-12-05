@@ -1,5 +1,5 @@
 const EventEmitter = require(`events`);
-const Kafka2 = require(`./kafka2/Kafka`);
+const Kafka = require(`./kafka/Kafka`);
 
 
 /**
@@ -12,7 +12,10 @@ class InternalCommunicatorFacade extends EventEmitter {
 
 		const me = this;
 
-		me.kafka = new Kafka2();
+		me.kafka = new Kafka();
+
+		me.kafka.on(`message`,
+			(subscriberId, topic, message, partition) => me.emit(`message`, subscriberId, topic, message, partition));
 	}
 
 	createTopics(topicsList) {
@@ -42,7 +45,19 @@ class InternalCommunicatorFacade extends EventEmitter {
 	send(payload) {
 		const me = this;
 
-		return me.kafka.sendData(payload);
+		return me.kafka.send(payload);
+	}
+
+	removeSubscriber(subscriberId) {
+		const me = this;
+
+		return me.kafka.removeSubscriber(subscriberId);
+	}
+
+	isAvailable() {
+		const me = this;
+
+		return me.kafka.isAvailable();
 	}
 }
 

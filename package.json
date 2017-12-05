@@ -14,6 +14,7 @@
     "guid": "0.0.12",
     "kafka-node": "^2.3.0",
     "no-kafka": "^3.2.8",
+    "node-status": "^1.0.0",
     "pino": "^4.10.2",
     "request": "^2.83.0",
     "string-hash": "^1.1.3",

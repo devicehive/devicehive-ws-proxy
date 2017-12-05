@@ -24,15 +24,32 @@ webSocketServer.on(`clientMessage`, (clientId, data) => {
 });
 
 webSocketServer.on(`clientDisconnect`, (clientId) => {
-
+	internalCommunicatorFacade.removeSubscriber(clientId);
 });
 
-messageBuffer.on(`notEmpty`, () => { // TODO
-    while (messageBuffer.length) {
-        processMessage(messageBuffer.shift());
-    }
-});
+// messageBuffer.on(`notEmpty`, () => { // TODO
+//     while (messageBuffer.length) {
+//         processMessage(messageBuffer.shift());
+//     }
+// });
 
+setInterval(() => {
+	internalCommunicatorFacade.isAvailable()
+		.then(() => {
+			const counter = messageBuffer.length < 500 ? messageBuffer.length : 500;
+			for (let i = 0; i < counter; i++) {
+				processMessage(messageBuffer.shift());
+			}
+		});
+}, 50);
+
+
+internalCommunicatorFacade.on(`message`, (clientId, topic, message, partition) => {
+	webSocketServer.send(clientId, new Message({
+		type: Message.NOTIFICATION_TYPE,
+		payload: message.value.toString(),
+	}).toString());
+});
 
 function processMessage({ clientId, message }) {
 	if (webSocketServer.isClientAuthenticated(clientId) || message.action === Message.AUTHENTICATE_ACTION) {
@@ -170,12 +187,13 @@ function processTopicSubscribeAction(clientId, message) {
 function processTopicUnsubscribeAction(clientId, message) {
 	if (Array.isArray(message.payload.t)) {
 		internalCommunicatorFacade.unsubscribe(clientId, message.payload.t)
-			.then(() => {
+			.then((topicUnsubscriptionList) => {
 				webSocketServer.send(clientId, new Message({
 					id: message.id,
 					type: Message.TOPIC_TYPE,
 					action: Message.UNSUBSCRIBE_ACTION,
-					status: Message.SUCCESS_STATUS
+					status: Message.SUCCESS_STATUS,
+					payload: topicUnsubscriptionList
 				}).toString());
 			})
 			.catch((error) => respondWithFailure(clientId, error.message, message.id));
@@ -188,9 +206,8 @@ function processTopicUnsubscribeAction(clientId, message) {
 function processNotificationCreateAction(clientId, message) {
 	internalCommunicatorFacade.send({
 		topic: message.payload.t,
-		messages: [ message.payload.m ],
-		partition: 0,
-		attributes: 0
+		message: { value: message.payload.m },
+		partition: message.payload.part
 	}).then(() => {
 		webSocketServer.send(clientId, new Message({
 			id: message.id,

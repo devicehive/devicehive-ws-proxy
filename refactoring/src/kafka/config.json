@@ -1,4 +1,6 @@
 {
     "KAFKA_HOSTS": "localhost:9092",
-    "KAFKA_CLIENT_PREFIX": "ws-proxy-kafka-client"
+    "KAFKA_CLIENT_ID": "ws-proxy-kafka-client",
+    "CONSUMER_GROUP_ID": "ws-proxy-consumer-group",
+    "LOGGER_LEVEL": 5
 }

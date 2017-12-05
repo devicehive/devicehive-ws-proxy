@@ -1,66 +1,61 @@
-var server = require( 'http' ).createServer();
+const WebSocket = require('ws');
+const Message = require(`../../lib/Message`);
+const status = require('node-status');
 
-// our html template
-var script = function( f ) {
-	// get just the content of this script
-	var s = /^[^\{]+\{\n?([\s\S]+)\}/.exec( f )[1];
-	return [
-		'<!DOCTYPE html><html>',
-		'<head>',
-		'<script type="text/javascript">',s,'</script>',
-		'</head>',
-		'<body style="font-size:40px"></body>',
-		'</html>'
-	].join( '\n' );
-}
+const TOTAL_MESSAGES = 240;
 
-// some browser side javascript
-var makeWebSocket = ( function() {
-	var ws = new WebSocket( 'ws://localhost:3000' );
-	var start;
-	ws.addEventListener( 'open', function() {
-		start = new Date().getTime();
-		this.send( '.' );
-	} )
-	var count = 0;
-	ws.addEventListener( 'message', function( e ) {
-		var end = new Date().getTime();
-		var diff = String( end - start )
-		if( diff >= 1000 ) {
-			alert( 'Your browser can route'+count+'websocket requests per second' );
+const sendedStatus = status.addItem('sendedStatus', { max: TOTAL_MESSAGES });
+const recievedStatus = status.addItem('recievedStatus', { max: TOTAL_MESSAGES });
+
+
+const ws = new WebSocket('ws://localhost:3000');
+let sendCounter = 0;
+let counter = 0;
+let interval;
+
+status.start({
+	invert: true,
+	interval: 200,
+	pattern: 'Doing work: {uptime}  |  {spinner.cyan}  |  {sendedStatus.bar} | {recievedStatus.bar}'
+});
+
+
+ws.on('open', function open() {
+	ws.send(new Message({
+		type: Message.TOPIC_TYPE,
+		action: Message.SUBSCRIBE_ACTION,
+		payload: {
+			t: ["topicN"]
 		}
-		else {
-			this.send( e.data );
+	}).toString());
+});
+
+ws.on('message', function incoming(data) {
+	const message = Message.normalize(JSON.parse(data));
+
+	if (message.type === Message.NOTIFICATION_TYPE && message.action !== Message.CREATE_ACTION) {
+		counter++;
+		recievedStatus.inc();
+
+		if (counter === TOTAL_MESSAGES) {
+			ws.close();
+			process.exit();
 		}
-		count++;
-	} );
-}  )
-
-// send our page
-server.addListener( 'request', function( req, res ) {
-	res.writeHead( 200 );
-	res.end( script( makeWebSocket ) );
-} )
-
-// create the most basic websocket imaginable
-server.addListener( 'upgrade', function( req, socket ) {
-	socket.send = function( s ) {
-		this.write( '\u0000', 'binary' );
-		this.write( s, 'utf8' );
-		this.write( '\uffff', 'binary' );
+	} else if (message.type === Message.TOPIC_TYPE && message.action === Message.SUBSCRIBE_ACTION) {
+		interval = setInterval(() => {
+			if (sendCounter < TOTAL_MESSAGES) {
+				for(let i = 0; i < 1; i++) {
+					ws.send(new Message({
+						type: Message.NOTIFICATION_TYPE,
+						action: Message.CREATE_ACTION,
+						payload: {t: "topicN", m: `counter:${sendCounter}HelloWorld!HelloWorld!HelloWorld!HelloWorld!`}
+					}).toString());
+					sendCounter++;
+					sendedStatus.inc();
+				}
+			} else {
+				clearInterval(interval);
+			}
+		}, 500);
 	}
-	socket.write( [
-		'HTTP/1.1 101 Web Socket Protocol Handshake',
-		'Upgrade: WebSocket',
-		'Connection: Upgrade',
-		'WebSocket-Origin: '+req.headers.origin,
-		'WebSocket-Location: ws://'+req.headers.host+'/',
-		null, null
-	].join( "\r\n" ) );
-	socket.addListener( 'data', function( s ) {
-		var data = s.toString( 'utf8' ).slice( 1, -1 );
-		this.send( data );
-	} );
-} )
-
-server.listen( 8020 );
+});

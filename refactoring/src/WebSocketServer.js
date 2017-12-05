@@ -16,6 +16,7 @@ class WebSocketServer extends EventEmitter {
 	static get CLIENT_CONNECT_EVENT() { return `clientConnect`; }
 	static get CLIENT_MESSAGE_EVENT() { return `clientMessage`; }
 	static get CLIENT_DISCONNECT_EVENT() { return `clientDisconnect`; }
+	static get WS_OPEN_STATE() { return 1; }
 
 	constructor() {
 		super();
@@ -61,7 +62,9 @@ class WebSocketServer extends EventEmitter {
 	    const me = this;
 	    const client = me.getClientById(id);
 
-	    client.send(data);
+	    if (client && client.readyState === WebSocketServer.WS_OPEN_STATE) {
+		    client.send(data);
+	    }
     }
 
     authenticateClient(clientId) {
