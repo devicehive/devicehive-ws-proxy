@@ -1,5 +1,5 @@
 const EventEmitter = require(`events`);
-const Kafka = require(`./kafka/Kafka`);
+const Kafka2 = require(`./kafka2/Kafka`);
 
 
 /**
@@ -12,13 +12,13 @@ class InternalCommunicatorFacade extends EventEmitter {
 
 		const me = this;
 
-		me.kafka = new Kafka();
+		me.kafka = new Kafka2();
 	}
 
 	createTopics(topicsList) {
 		const me = this;
 
-		return me.kafka.createClientTopics(topicsList);
+		return me.kafka.createTopics(topicsList);
 	}
 
 	listTopics() {
@@ -42,7 +42,7 @@ class InternalCommunicatorFacade extends EventEmitter {
 	send(payload) {
 		const me = this;
 
-		return me.kafka.send(payload);
+		return me.kafka.sendData(payload);
 	}
 }
 

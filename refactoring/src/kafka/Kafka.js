@@ -35,7 +35,7 @@ class Kafka extends KafkaClient {
         me.subscriptionMap = new Map();
 
         me.producer = new KafkaProducer(me);
-        me.consumer = new KafkaConsumerGroup([]);
+        me.consumer = new KafkaConsumerGroup([`__health__`]);
     }
 
     getProducer() {
@@ -54,6 +54,7 @@ class Kafka extends KafkaClient {
 			new Promise((resolve) => me.consumer.on(`ready`, () => resolve(me.consumer)));
 	}
 
+	//TODO
     addTopicsToConsumer(topicsList) {
         const me = this;
 
@@ -67,6 +68,7 @@ class Kafka extends KafkaClient {
 	    });
     }
 
+    //TODO
     removeTopicsFromConsumer(topicsList) {
 	    const me = this;
 
@@ -79,6 +81,11 @@ class Kafka extends KafkaClient {
 			    });
 	    });
     }
+
+    createTopicsConsumer() {
+
+	}
+
 
 	createClientTopics(topicsList) {
 		const me = this;
@@ -163,7 +170,7 @@ class Kafka extends KafkaClient {
         });
 	}
 
-	send(payload) {
+	sendData(payload) {
 		const me = this;
 
 		return new Promise((resolve, reject) => {
