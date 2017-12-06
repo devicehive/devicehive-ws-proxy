@@ -5,7 +5,7 @@ const NoKafka = require(`no-kafka`);
 const uuid = require(`uuid/v1`);
 const debug = require(`debug`)(`kafka`);
 
-require(`./patch.js`);
+require(`./patch/patch.js`);
 
 /**
  *
