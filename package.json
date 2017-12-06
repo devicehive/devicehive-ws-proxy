@@ -9,10 +9,12 @@
   "main": "index.js",
   "license": "Apache 2.0",
   "dependencies": {
+    "bluebird": "^3.5.1",
     "debug": "^2.6.9",
     "fifo": "^2.3.0",
     "guid": "0.0.12",
     "kafka-node": "^2.3.0",
+    "lodash": "^4.17.4",
     "no-kafka": "^3.2.8",
     "node-status": "^1.0.0",
     "pino": "^4.10.2",

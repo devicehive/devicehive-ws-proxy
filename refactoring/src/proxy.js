@@ -34,13 +34,12 @@ webSocketServer.on(`clientDisconnect`, (clientId) => {
 // });
 
 setInterval(() => {
-	internalCommunicatorFacade.isAvailable()
-		.then(() => {
-			const counter = messageBuffer.length < 500 ? messageBuffer.length : 500;
-			for (let i = 0; i < counter; i++) {
-				processMessage(messageBuffer.shift());
-			}
-		});
+	if (internalCommunicatorFacade.isAvailable()) {
+		const counter = messageBuffer.length < 500 ? messageBuffer.length : 500;
+		for (let i = 0; i < counter; i++) {
+			processMessage(messageBuffer.shift());
+		}
+	}
 }, 50);
 
 
