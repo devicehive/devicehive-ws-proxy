@@ -12,41 +12,32 @@ services:
       KAFKA_ADVERTISED_HOST_NAME: ${HOST:-kafka}
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_ADVERTISED_PORT: 9092
-      HOSTNAME_COMMAND: ${HOST:-kafka}
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
-      KAFKA_ADVERTISED_PROTOCOL_NAME: OUTSIDE
-      KAFKA_PROTOCOL_NAME: INSIDE
-      KAFKA_NUM_PARTITIONS: ${PARTITIONS_PER_TOPIC:-4}
     links:
       - zookeeper
-  nginx:
+  proxynginx:
       build: ./nginx
-      container_name: nginx
+      container_name: proxynginx
       links:
-        - broker1:broker1
-        - broker2:broker2
-        - broker3:broker3
-        - broker4:broker4
+        - internalproxy:internalproxy
+        - externalproxy:externalproxy
       ports:
         - "3000:3000"
-  internalProxy:
+        - "3001:3001"
+  internalproxy:
     build: .
-    container_name: internalProxy
+    container_name: internalproxy
     environment:
-      - WS_SERVER_URL=ws://playground.dev.devicehive.com/api/websocket
-      - REDIS_SERVER_HOST=redis
-      - REDIS_SERVER_PORT=6379
-      - ENABLE_PM=false
+      KAFKA.KAFKA_HOSTS: "kafka:9092"
+      PROXY.ENABLE_PLUGIN_MANGER: "false"
+      DEBUG: "websocketserver,kafka,messagebuffer,pluginmanager"
     links:
       - kafka
-  externalProxy:
+  externalproxy:
     build: .
-    container_name: externalProxy
+    container_name: externalproxy
     environment:
-      - WS_SERVER_URL=ws://playground.dev.devicehive.com/api/websocket
-      - REDIS_SERVER_HOST=redis
-      - REDIS_SERVER_PORT=6379
-      - ENABLE_PM=false
+      KAFKA.KAFKA_HOSTS: "kafka:9092"
+      PROXY.ENABLE_PLUGIN_MANGER: "true"
+      DEBUG: "websocketserver,kafka,messagebuffer,pluginmanager"
     links:
       - kafka
-

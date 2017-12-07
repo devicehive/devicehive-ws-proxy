@@ -62,6 +62,16 @@ class Utils {
     static value(value, defaultValue) {
         return (Utils.isDefined(value) && value !== ``) ? value : defaultValue;
     }
+
+
+    /**
+     *
+     * @param value
+     * @returns {Boolean}
+     */
+    static isTrue(value) {
+        return value === true ? true : (value === `true`);
+    }
 }
 
 
