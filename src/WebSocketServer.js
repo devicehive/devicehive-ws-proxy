@@ -39,7 +39,7 @@ class WebSocketServer extends EventEmitter {
 		});
 
 		me.wsServer.on(`listening`, () => {
-			debug(`Server starts listening`);
+			debug(`Server starts listening on ${ProxyConfig.WEB_SOCKET_SERVER_HOST}:${ProxyConfig.WEB_SOCKET_SERVER_PORT}`);
 			me.isReady = true
 		});
 	}

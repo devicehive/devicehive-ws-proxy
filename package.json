@@ -1,27 +1,25 @@
 {
-  "name": "devicehive-ws-kafka-proxy",
-  "version": "1.0.0",
-  "description": "WebSocket message broker connector",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "main": "index.js",
-  "license": "Apache 2.0",
-  "dependencies": {
-    "bluebird": "^3.5.1",
-    "debug": "^2.6.9",
-    "fifo": "^2.3.0",
-    "guid": "0.0.12",
-    "jsonwebtoken": "^8.1.0",
-    "kafka-node": "^2.3.0",
-    "lodash": "^4.17.4",
-    "no-kafka": "^3.2.8",
-    "node-status": "^1.0.0",
-    "pino": "^4.10.2",
-    "request": "^2.83.0",
-    "string-hash": "^1.1.3",
-    "uuid": "^3.1.0",
-    "ws": "^3.3.2"
-  }
+    "name": "devicehive-ws-kafka-proxy",
+    "version": "1.0.0",
+    "description": "WebSocket to message broker proxy",
+    "scripts": {
+        "start": "node ./src/proxy.js"
+    },
+    "author": "",
+    "main": "./src/proxy.js",
+    "license": "Apache 2.0",
+    "dependencies": {
+        "bluebird": "^3.5.1",
+        "debug": "^2.6.9",
+        "fifo": "^2.3.0",
+        "jsonwebtoken": "^8.1.0",
+        "lodash": "^4.17.4",
+        "no-kafka": "^3.2.8",
+        "request": "^2.83.0",
+        "uuid": "^3.1.0",
+        "ws": "^3.3.2"
+    },
+    "devDependencies": {
+        "node-status": "^1.0.0"
+    }
 }

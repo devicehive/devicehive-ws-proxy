@@ -1,5 +1,0 @@
-{
-  "MBR_LIST": "localhost:9094",
-  "WSS_PORT": "3000",
-  "AUTH_SERVICE_ENDPOINT": "http://localhost:8090/dh/rest"
-}

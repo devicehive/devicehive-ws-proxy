@@ -1,4 +1,4 @@
-version: "3"
+version: '3'
 services:
   zookeeper:
     image: wurstmeister/zookeeper
@@ -8,89 +8,45 @@ services:
     image: wurstmeister/kafka
     ports:
       - "9092:9092"
-      - "9093:9093"
-      - "9094:9094"
     environment:
       KAFKA_ADVERTISED_HOST_NAME: ${HOST:-kafka}
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-#      KAFKA_ADVERTISED_PORT: 9092
+      KAFKA_ADVERTISED_PORT: 9092
       HOSTNAME_COMMAND: ${HOST:-kafka}
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
       KAFKA_ADVERTISED_PROTOCOL_NAME: OUTSIDE
       KAFKA_PROTOCOL_NAME: INSIDE
-      KAFKA_ADVERTISED_PORT: 9094
       KAFKA_NUM_PARTITIONS: ${PARTITIONS_PER_TOPIC:-4}
     links:
       - zookeeper
-  node_1:
-      build: .
-      ports:
-        - "8080:8080"
-      environment:
-        KAFKA_MBR: "${HOST:-kafka}:9094"
-        DEBUG: ${DEBUG}
-        WSS_PORT: ${WSS_PORT:-8080}
-      volumes:
-        - ${CONF_PATH:-./application/configs/}:/usr/src/app/conf:ro
+  nginx:
+      build: ./nginx
+      container_name: nginx
       links:
-        - kafka
-  node_2:
-      build: .
+        - broker1:broker1
+        - broker2:broker2
+        - broker3:broker3
+        - broker4:broker4
       ports:
-        - "8081:8081"
-      environment:
-        KAFKA_MBR: "${HOST:-kafka}:9094"
-        DEBUG: ${DEBUG}
-        WSS_PORT: ${WSS_PORT:-8081}
-      volumes:
-        - ${CONF_PATH:-./application/configs/}:/usr/src/app/conf:ro
-      links:
-        - kafka
-  node_3:
-      build: .
-      ports:
-        - "8082:8082"
-      environment:
-        KAFKA_MBR: "${HOST:-kafka}:9094"
-        DEBUG: ${DEBUG}
-        WSS_PORT: ${WSS_PORT:-8082}
-      volumes:
-        - ${CONF_PATH:-./application/configs/}:/usr/src/app/conf:ro
-      links:
-        - kafka
-  node_4:
-      build: .
-      ports:
-        - "8083:8083"
-      environment:
-        KAFKA_MBR: "${HOST:-kafka}:9094"
-        DEBUG: ${DEBUG}
-        WSS_PORT: ${WSS_PORT:-8083}
-      volumes:
-        - ${CONF_PATH:-./application/configs/}:/usr/src/app/conf:ro
-      links:
-        - kafka
-  node_5:
-      build: .
-      ports:
-        - "8084:8084"
-      environment:
-        KAFKA_MBR: "${HOST:-kafka}:9094"
-        DEBUG: ${DEBUG}
-        WSS_PORT: ${WSS_PORT:-8084}
-      volumes:
-        - ${CONF_PATH:-./application/configs/}:/usr/src/app/conf:ro
-      links:
-        - kafka
-  node_6:
-        build: .
-        ports:
-          - "8090:8090"
-        environment:
-          KAFKA_MBR: "${HOST:-kafka}:9094"
-          DEBUG: ${DEBUG}
-          WSS_PORT: ${WSS_PORT:-8090}
-        volumes:
-          - ${CONF_PATH:-./application/configs/}:/usr/src/app/conf:ro
-        links:
-          - kafka
+        - "3000:3000"
+  internalProxy:
+    build: .
+    container_name: internalProxy
+    environment:
+      - WS_SERVER_URL=ws://playground.dev.devicehive.com/api/websocket
+      - REDIS_SERVER_HOST=redis
+      - REDIS_SERVER_PORT=6379
+      - ENABLE_PM=false
+    links:
+      - kafka
+  externalProxy:
+    build: .
+    container_name: externalProxy
+    environment:
+      - WS_SERVER_URL=ws://playground.dev.devicehive.com/api/websocket
+      - REDIS_SERVER_HOST=redis
+      - REDIS_SERVER_PORT=6379
+      - ENABLE_PM=false
+    links:
+      - kafka
+

@@ -60,7 +60,7 @@ class Utils {
      * @returns {*}
      */
     static value(value, defaultValue) {
-        return Utils.isDefined(value) ? value : defaultValue;
+        return (Utils.isDefined(value) && value !== ``) ? value : defaultValue;
     }
 }
 

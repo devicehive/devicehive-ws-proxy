@@ -17,6 +17,10 @@ class PluginManager {
         const me = this;
 
         me.pluginKeyTokenPayloadMap = new Map();
+
+        if (me.isEnabled()) {
+            debug(`Plugin Manager is enabled`);
+        }
     }
 
     authenticate(pluginKey, token) {

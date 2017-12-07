@@ -1,4 +1,4 @@
-FROM node:8.8.1-alpine
+FROM node:9.2.0-alpine
 
 MAINTAINER devicehive
 
@@ -27,4 +27,4 @@ RUN apk update \
 
 EXPOSE 3000
 VOLUME ["/usr/src/app/conf"]
-CMD ["node", "application/wskafka-server.js"]
+CMD ["node", "src/proxy.js"]

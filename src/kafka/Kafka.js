@@ -35,7 +35,7 @@ class Kafka extends EventEmitter {
         me.consumer = new Consumer({
             clientId: `${KafkaConfig.KAFKA_CLIENT_ID}-${clientUUID}`,
             connectionString: KafkaConfig.KAFKA_HOSTS,
-            groupId: KafkaConfig.CONSUMER_GROUP_ID,
+            groupId: `${KafkaConfig.CONSUMER_GROUP_ID}-${clientUUID}`,
             logger: {
                 logLevel: KafkaConfig.LOGGER_LEVEL
             }
