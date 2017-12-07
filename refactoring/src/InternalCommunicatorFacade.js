@@ -14,8 +14,7 @@ class InternalCommunicatorFacade extends EventEmitter {
 
 		me.kafka = new Kafka();
 
-		me.kafka.on(`message`,
-			(subscriberId, topic, message, partition) => me.emit(`message`, subscriberId, topic, message, partition));
+		me.kafka.on(`message`, me.emit.bind(null, `message`));
 	}
 
 	createTopics(topicsList) {

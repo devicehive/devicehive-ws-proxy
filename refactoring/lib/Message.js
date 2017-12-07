@@ -16,14 +16,14 @@ class Message {
     static get SUCCESS_STATUS() { return 0; }
     static get FAILED_STATUS() { return 1; }
 
-    static normalize(data) {
+    static normalize({ id, t, a, p, s } = {}) {
         return new Message({
-            id: data.id,
-            type: data.t,
-            action: data.a,
-            payload: data.p,
-            status: data.s
-        })
+            id: id,
+            type: t,
+            action: a,
+            payload: p,
+            status: s
+        });
     }
 
     constructor({ id, type, action, payload, status } = {}) {

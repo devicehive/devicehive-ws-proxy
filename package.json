@@ -13,6 +13,7 @@
     "debug": "^2.6.9",
     "fifo": "^2.3.0",
     "guid": "0.0.12",
+    "jsonwebtoken": "^8.1.0",
     "kafka-node": "^2.3.0",
     "lodash": "^4.17.4",
     "no-kafka": "^3.2.8",

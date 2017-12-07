@@ -1,5 +1,10 @@
 {
-  "WEB_SOCKET_SERVER_HOST": "localhost",
-  "WEB_SOCKET_SERVER_PORT": 3000,
-  "AUTH_SERVICE_ENDPOINT": "http://localhost:8090/dh/rest"
+    "WEB_SOCKET_SERVER_HOST": "localhost",
+    "WEB_SOCKET_SERVER_PORT": 3000,
+    "AUTH_SERVICE_ENDPOINT": "http://localhost:8090/dh/rest",
+    "ENABLE_PLUGIN_MANGER": true,
+    "SPECIFIC": {
+        "BUFFER_POLLING_INTERVAL_MS": 50,
+        "BUFFER_POLLING_MESSAGE_AMOUNT": 500
+    }
 }

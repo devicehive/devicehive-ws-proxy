@@ -1,11 +1,11 @@
 const EventEmitter = require(`events`);
 const Utils = require(`../../utils`);
-const Config = require(`./config.json`);
+const KafkaConfig = require(`./KafkaConfig`);
 const NoKafka = require(`no-kafka`);
+const Consumer = require(`./Consumer`);
 const uuid = require(`uuid/v1`);
 const debug = require(`debug`)(`kafka`);
 
-require(`./patch/patch.js`);
 
 /**
  *
@@ -26,18 +26,18 @@ class Kafka extends EventEmitter {
         me.available = true;
         me.subscriptionMap = new Map();
         me.producer = new NoKafka.Producer({
-            clientId: `${Config.KAFKA_CLIENT_ID}-${clientUUID}`,
-            connectionString: Config.KAFKA_HOSTS,
+            clientId: `${KafkaConfig.KAFKA_CLIENT_ID}-${clientUUID}`,
+            connectionString: KafkaConfig.KAFKA_HOSTS,
             logger: {
-                logLevel: Config.LOGGER_LEVEL
+                logLevel: KafkaConfig.LOGGER_LEVEL
             }
         });
-        me.consumer = new NoKafka.GroupConsumer({
-            clientId: `${Config.KAFKA_CLIENT_ID}-${clientUUID}`,
-            connectionString: Config.KAFKA_HOSTS,
-            groupId: Config.CONSUMER_GROUP_ID,
+        me.consumer = new Consumer({
+            clientId: `${KafkaConfig.KAFKA_CLIENT_ID}-${clientUUID}`,
+            connectionString: KafkaConfig.KAFKA_HOSTS,
+            groupId: KafkaConfig.CONSUMER_GROUP_ID,
             logger: {
-                logLevel: Config.LOGGER_LEVEL
+                logLevel: KafkaConfig.LOGGER_LEVEL
             }
         });
 
