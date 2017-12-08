@@ -17,6 +17,7 @@
         "no-kafka": "^3.2.8",
         "request": "^2.83.0",
         "uuid": "^3.1.0",
+        "winston": "^2.4.0",
         "ws": "^3.3.2"
     },
     "devDependencies": {

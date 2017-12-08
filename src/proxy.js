@@ -6,16 +6,21 @@ const WebSocketServer = require(`./WebSocketServer`);
 const MessageBuffer = require(`./MessageBuffer`);
 const InternalCommunicatorFacade = require(`./InternalCommunicatorFacade`);
 const PluginManager = require(`./PluginManager`);
+const ApplicationLogger = require(`./ApplicationLogger`);
 
 
+const logger = new ApplicationLogger(CONST.APPLICATION_TAG, ProxyConfig.APP_LOG_LEVEL);
 const messageBuffer = new MessageBuffer();
 const internalCommunicatorFacade = new InternalCommunicatorFacade(ProxyConfig.COMMUNICATOR_TYPE);
 const pluginManager = new PluginManager();
 const webSocketServer = new WebSocketServer();
 
 
-webSocketServer.on(WebSocketServer.CLIENT_CONNECT_EVENT, (clientId) => {
+initProcessExitHandlers();
 
+
+webSocketServer.on(WebSocketServer.CLIENT_CONNECT_EVENT, (clientId) => {
+    logger.info(`New WebSocket client connected. ID: ${clientId}`);
 });
 
 webSocketServer.on(WebSocketServer.CLIENT_MESSAGE_EVENT, (clientId, data) => {
@@ -32,6 +37,7 @@ webSocketServer.on(WebSocketServer.CLIENT_MESSAGE_EVENT, (clientId, data) => {
             messageBuffer.push({ clientId: clientId, message: normalizedMessage });
         });
     } catch (error) {
+        logger.warn(`Error on incoming WebSocket message: ${error.message}`);
         respondWithFailure(clientId, error.message, error.messageId);
     }
 });
@@ -39,6 +45,8 @@ webSocketServer.on(WebSocketServer.CLIENT_MESSAGE_EVENT, (clientId, data) => {
 webSocketServer.on(WebSocketServer.CLIENT_DISCONNECT_EVENT, (clientId) => {
 	internalCommunicatorFacade.removeSubscriber(clientId);
     pluginManager.removeAuthentication(clientId);
+
+    logger.info(`WebSocket client has been disconnected. ID: ${clientId}`);
 });
 
 internalCommunicatorFacade.on(InternalCommunicatorFacade.MESSAGE_EVENT, (clientId, topic, message, partition) => {
@@ -181,6 +189,8 @@ function processTopicCreateAction(clientId, message) {
 					status: Message.SUCCESS_STATUS,
 					payload: createdTopicList
 				}).toString());
+
+                logger.info(`Topics ${createdTopicList} has been created (request from ${clientId})`);
 			})
 			.catch((error) => respondWithFailure(clientId, error.message, message.id));
 	} else {
@@ -225,6 +235,8 @@ function processTopicSubscribeAction(clientId, message) {
 				    status: Message.SUCCESS_STATUS,
 				    payload: topicSubscriptionList
 			    }).toString());
+
+                logger.info(`Client ${clientId} has been subscribed to the next topics: ${topicSubscriptionList}`);
 		    })
 		    .catch((error) => respondWithFailure(clientId, error.message, message.id));
     } else {
@@ -249,6 +261,8 @@ function processTopicUnsubscribeAction(clientId, message) {
 					status: Message.SUCCESS_STATUS,
 					payload: topicUnsubscriptionList
 				}).toString());
+
+                logger.info(`Client ${clientId} has been unsubscribed from the next topics: ${topicUnsubscriptionList}`);
 			})
 			.catch((error) => respondWithFailure(clientId, error.message, message.id));
 	} else {
@@ -296,6 +310,8 @@ function processPluginAuthenticateAction(clientId, message) {
                     status: Message.SUCCESS_STATUS,
                     payload: authenticationResponse
                 }).toString());
+
+                logger.info(`Client plugin ${clientId} has been authenticated`);
 			})
 			.catch((error) => {
                 respondWithFailure(clientId, error.message, message.id);
@@ -319,4 +335,26 @@ function respondWithFailure (clientId, errorMessage, messageId) {
         status: Message.FAILED_STATUS,
         payload: { message: errorMessage }
     }).toString());
+}
+
+/**
+ * Init process exit handlers. Log errors
+ */
+function initProcessExitHandlers() {
+    process.stdin.resume();
+
+    function exitHandler(error) {
+        if (error) {
+            logger.err(`Process exited with error: ${error.message}`);
+            logger.err(error.stack);
+        }
+
+        process.exit();
+    }
+
+    process.on('exit', exitHandler);
+    process.on('SIGINT', exitHandler);
+    process.on('SIGUSR1', exitHandler);
+    process.on('SIGUSR2', exitHandler);
+    process.on('uncaughtException', exitHandler);
 }

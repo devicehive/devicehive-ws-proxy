@@ -24,7 +24,8 @@ RUN apk update \
     && npm cache clean --force \
     && apk del .gyp
 
+RUN npm install pm2 -g
 
 EXPOSE 3000
 VOLUME ["/usr/src/app/conf"]
-CMD ["node", "src/proxy.js"]
+CMD ["pm2-docker", "src/proxy.js"]
