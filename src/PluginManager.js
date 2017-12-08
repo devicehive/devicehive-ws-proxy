@@ -2,17 +2,24 @@ const ProxyConfig = require(`./ProxyConfig`);
 const Message = require(`../lib/Message`);
 const NotificationMessagePayload = require(`../lib/NotificationMessagePayload`);
 const TokenPayload = require(`../lib/TokenPayload`);
+const AuthenticationPluginError = require(`../lib/errors/plugin/AuthenticationPluginError`);
+const NotAuthorizedPluginError = require(`../lib/errors/plugin/NotAuthorizedPluginError`);
+const NoPermissionsPluginError = require(`../lib/errors/plugin/NoPermissionsPluginError`);
 const request = require(`request`);
 const jwt = require('jsonwebtoken');
 const debug = require(`debug`)(`pluginmanager`);
 
+
 /**
- *
+ * Plugin manager class
  */
 class PluginManager {
 
     static get PLUGIN_AUTHENTICATE_RESOURCE_PATH() { return `/token/plugin/authenticate`; }
 
+    /**
+     * Creates new PluginManager
+     */
     constructor() {
         const me = this;
 
@@ -23,6 +30,12 @@ class PluginManager {
         }
     }
 
+    /**
+     * Authenticates plugin with pluginKey by access token
+     * @param pluginKey
+     * @param token
+     * @returns {Promise<any>}
+     */
     authenticate(pluginKey, token) {
         const me = this;
 
@@ -31,21 +44,35 @@ class PluginManager {
                 method: `GET`,
                 uri: `${ProxyConfig.AUTH_SERVICE_ENDPOINT}${PluginManager.PLUGIN_AUTHENTICATE_RESOURCE_PATH}?token=${token}`
             }, (err, response, body) => {
-                if (!err && response.statusCode === 200) {
-                    me.pluginKeyTokenPayloadMap.set(pluginKey, TokenPayload.normalize(jwt.decode(token).payload));
+                try {
+                    const authenticationResponse = JSON.parse(body);
 
-                    debug(`Plugin with key: ${pluginKey} has been authenticated`);
+                    if (!err && response.statusCode === 200) {
+                        me.pluginKeyTokenPayloadMap.set(pluginKey, TokenPayload.normalize(jwt.decode(token).payload));
 
-                    resolve(body);
-                } else {
-                    debug(`Plugin with key: ${pluginKey} has not been authenticated`);
+                        debug(`Plugin with key: ${pluginKey} has been authenticated`);
 
-                    reject(JSON.parse(body).message);
+                        resolve(authenticationResponse);
+                    } else {
+                        debug(`Plugin with key: ${pluginKey} has not been authenticated`);
+
+                        reject(new AuthenticationPluginError(authenticationResponse.message));
+                    }
+                } catch (error) {
+                    reject(error.message);
                 }
             });
         });
     }
 
+    /**
+     * Checks that plugin by pluginKey has permissions for operation
+     * Throws next errors:
+     *      - NotAuthorizedPluginError
+     *      - NoPermissionsPluginError
+     * @param pluginKey
+     * @param message
+     */
     checkConstraints(pluginKey, message) {
         const me = this;
         const isAuthenticated = me.isAuthenticated(pluginKey);
@@ -53,9 +80,9 @@ class PluginManager {
         if (!isAuthenticated &&
             message.type !== Message.PLUGIN_TYPE &&
             message.action !== Message.AUTHENTICATE_ACTION) {
-            throw new Error(`Not authorized`);
+            throw new NotAuthorizedPluginError(message.id);
         } else if (isAuthenticated === true) {
-            const tokenPayload = me.getPluginToken(pluginKey);
+            const tokenPayload = me.getPluginTokenPayload(pluginKey);
 
             switch(message.type) {
                 case Message.TOPIC_TYPE:
@@ -63,51 +90,69 @@ class PluginManager {
                         case Message.CREATE_ACTION:
                             if (message.payload &&
                                 (message.payload.length > 1 || message.payload[0] !== tokenPayload.topic)) {
-                                throw new Error(`Plugin has no permissions for this operation`);
+                                throw new NoPermissionsPluginError(message.id);
                             }
                             break;
                         case Message.SUBSCRIBE_ACTION:
                         case Message.UNSUBSCRIBE_ACTION:
                             if (message.payload && message.payload.t &&
                                 (message.payload.t.length > 1 || message.payload.t[0] !== tokenPayload.topic)) {
-                                throw new Error(`Plugin has no permissions for this operation`);
+                                throw new NoPermissionsPluginError(message.id);
                             }
                             break;
                         case Message.LIST_ACTION:
-                            throw new Error(`Plugin has no permissions for this operation`);
+                            throw new NoPermissionsPluginError(message.id);
                     }
                     break;
                 case Message.NOTIFICATION_TYPE:
                     if (NotificationMessagePayload.normalize(message.payload).topic !== tokenPayload.topic) {
-                        throw new Error(`Plugin has no permissions for this operation`);
+                        throw new NoPermissionsPluginError(message.id);
                     }
                     break;
             }
         }
     }
 
+    /**
+     * Checks that plugin with pluginKey is authenticated
+     * @param pluginKey
+     * @returns {boolean}
+     */
     isAuthenticated(pluginKey) {
         const me = this;
 
         return me.pluginKeyTokenPayloadMap.has(pluginKey);
     }
 
+    /**
+     * Removes authentication for plugin with pluginKey
+     * @param pluginKey
+     */
     removeAuthentication(pluginKey) {
         const me = this;
 
         me.pluginKeyTokenPayloadMap.delete(pluginKey);
     }
 
-    getPluginToken(pluginKey) {
+    /**
+     * Returns plugin TokenPayload by pluginKey
+     * @param pluginKey
+     * @returns {TokenPayload}
+     */
+    getPluginTokenPayload(pluginKey) {
         const me = this;
 
         return me.pluginKeyTokenPayloadMap.get(pluginKey);
     }
 
+    /**
+     * Checking if Plugin Manager is enabled
+     * @returns {boolean}
+     */
     isEnabled() {
         return ProxyConfig.ENABLE_PLUGIN_MANGER === true;
     }
 }
 
 
-module.exports = new PluginManager();
+module.exports = PluginManager;

@@ -1,11 +1,14 @@
 
 /**
- *
+ * Utility methods class
  */
 class Utils {
 
+    static get MS_IN_S() { return 1000; }
+    static get EMPTY_STRING() { return ``; }
+
     /**
-     *
+     * Iterate item or array of items
      * @param array
      * @param callback
      */
@@ -18,21 +21,7 @@ class Utils {
     }
 
     /**
-     *
-     * @param array
-     * @param callback
-     * @returns {any[]}
-     */
-    static map(array, callback) {
-        if (Array.isArray(array)) {
-            return array.map(callback);
-        } else {
-            return [array].map(callback);
-        }
-    }
-
-    /**
-     *
+     * Convert single item as array with one element or just returns array in case of array
      * @param array
      * @returns {*}
      */
@@ -45,7 +34,7 @@ class Utils {
     }
 
     /**
-     *
+     * Checks is variable not undefined or null
      * @param variable
      * @returns {boolean}
      */
@@ -54,7 +43,7 @@ class Utils {
     }
 
     /**
-     *
+     * Returns value if it's defined, not null, and not an empty string, or else returns defaultValue
      * @param value
      * @param defaultValue
      * @returns {*}
@@ -65,7 +54,7 @@ class Utils {
 
 
     /**
-     *
+     * Checks that value is true or "true"
      * @param value
      * @returns {Boolean}
      */

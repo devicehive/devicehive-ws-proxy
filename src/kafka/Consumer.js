@@ -12,12 +12,14 @@ Promise.config({
 
 
 /**
- *
+ * No-Kafka GroupConsumer implementations
+ * Added few improvments related to Kafka fault cases
  */
 class Consumer extends NoKafka.GroupConsumer {
 
     /**
-     *
+     * Corresponds to _heartbeat method of GroupConsumer
+     * Added isAvailable flag to give an ability to understand state of consumer
      * @returns {Bluebird<R>}
      * @private
      */
@@ -27,13 +29,13 @@ class Consumer extends NoKafka.GroupConsumer {
         return self.client.heartbeatRequest(self.options.groupId, self.memberId, self.generationId)
             .then(() => {
                 /**
-
+                    In case of successful heartbeat set isAvailable flag to true
                  */
                 self.isAvailable = true;
             })
             .catch({ code: 'RebalanceInProgress' }, function () {
                 /**
-
+                    In case of failed heartbeat set isAvailable flag to false
                  */
                 self.isAvailable = false;
                 // new group member has joined or existing member has left
@@ -47,7 +49,7 @@ class Consumer extends NoKafka.GroupConsumer {
             })
             .catch(function (err) {
                 /**
-
+                    In case of failed heartbeat set isAvailable flag to false
                  */
                 self.isAvailable = false;
                 // some severe error, such as GroupCoordinatorNotAvailable or network error
@@ -60,7 +62,7 @@ class Consumer extends NoKafka.GroupConsumer {
     };
 
     /**
-     *
+     * Corresponds to _syncGroup method of GroupConsumer
      * @returns {Bluebird<any>}
      * @private
      */
@@ -73,7 +75,7 @@ class Consumer extends NoKafka.GroupConsumer {
                     var r = [];
                     _.each(self.members, function (member) {
                         /**
-
+                            In case of rejoining consumer group, we should consider current subscriptions
                          */
                         _.each(_.union(member.subscriptions,
                             _.uniq(Object.keys(self.subscriptions).map(key => key.split(`:`)[0]))), function (topic) {
@@ -122,7 +124,7 @@ class Consumer extends NoKafka.GroupConsumer {
     };
 
     /**
-     *
+     * Corresponds to _updateSubscriptions method of GroupConsumer
      * @param partitionAssignment
      * @returns {Bluebird<any> | Bluebird<R> | Bluebird.Thenable<any> | * | PromiseLike<T> | Promise<T>}
      * @private
@@ -131,7 +133,7 @@ class Consumer extends NoKafka.GroupConsumer {
         var self = this, offsetRequests = [],
             handler = self.strategies[self.strategyName].handler;
         /**
-
+            Before clear current subscription we should store them
          */
         var previousSubscriptions = Object.assign({}, self.subscriptions);
 
@@ -155,7 +157,9 @@ class Consumer extends NoKafka.GroupConsumer {
         return self.client.updateMetadata().then(function () {
             return self.fetchOffset(offsetRequests).map(function (p) {
                 /**
-
+                    Consider of stored old subscriptions with mentioned offset
+                    It will give us an ability not to lose messages
+                    and start consuming new messages from hte latest offset
                  */
                 var options = {
                     offset: previousSubscriptions[`${p.topic}:${p.partition}`] ?

@@ -1,8 +1,10 @@
 {
     "WEB_SOCKET_SERVER_HOST": "localhost",
     "WEB_SOCKET_SERVER_PORT": 3000,
+    "WEB_SOCKET_PING_INTERVAL_S": 30,
     "AUTH_SERVICE_ENDPOINT": "http://localhost:8090/dh/rest",
     "ENABLE_PLUGIN_MANGER": true,
+    "COMMUNICATOR_TYPE": "kafka",
     "SPECIFIC": {
         "BUFFER_POLLING_INTERVAL_MS": 50,
         "BUFFER_POLLING_MESSAGE_AMOUNT": 500

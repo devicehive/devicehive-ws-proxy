@@ -8,13 +8,25 @@ const debug = require(`debug`)(`kafka`);
 
 
 /**
- *
+ * Kafka communicator implementation
+ * Implements next interface:
+ *      - createTopics
+ *      - listTopics
+ *      - subscribe
+ *      - unsubscribe
+ *      - send
+ *      - removeSubscriber
+ *      - isAvailable
+ * @event "message"
  */
 class Kafka extends EventEmitter {
 
     static get INTERNAL_TOPIC_PREFIX() { return `__` };
     static get HEALTH_TOPIC() { return `__health__` };
 
+    /**
+     * Creates new Kafka
+     */
     constructor() {
         super();
 
@@ -75,6 +87,10 @@ class Kafka extends EventEmitter {
         });
     }
 
+    /**
+     * Returns ready producer
+     * @returns {Producer}
+     */
     getProducer() {
         const me = this;
 
@@ -83,6 +99,10 @@ class Kafka extends EventEmitter {
             new Promise((resolve) => me.on(`producerReady`, () => resolve(me.producer)));
     }
 
+    /**
+     * Returns ready consumer
+     * @returns {Consumer}
+     */
     getConsumer() {
         const me = this;
 
@@ -91,7 +111,11 @@ class Kafka extends EventEmitter {
             new Promise((resolve) => me.on(`consumerReady`, () => resolve(me.consumer)));
     }
 
-
+    /**
+     * Creates Kafka topics by topicsList
+     * @param topicsList
+     * @returns {Promise<Array>}
+     */
     createTopics(topicsList) {
         const me = this;
 
@@ -103,6 +127,10 @@ class Kafka extends EventEmitter {
             });
     }
 
+    /**
+     * Returns list of all existing topics
+     * @returns {Promise<Array>}
+     */
     listTopics() {
         const me = this;
 
@@ -123,6 +151,12 @@ class Kafka extends EventEmitter {
             });
     }
 
+    /**
+     * Subscribes consumer to each topic of topicsList and adds subscriberId to each subscription
+     * @param subscriberId
+     * @param topicsList
+     * @returns {Promise<Array>}
+     */
     subscribe(subscriberId, topicsList) {
         const me = this;
         const topicsToSubscribe = [];
@@ -149,6 +183,12 @@ class Kafka extends EventEmitter {
             });
     }
 
+    /**
+     * Unsubscribes consumer from each topic of topicsList and removes subscriberId from each subscription
+     * @param subscriberId
+     * @param topicsList
+     * @returns {Bluebird<any>}
+     */
     unsubscribe(subscriberId, topicsList) {
         const me = this;
         const topicsToUnsubscribe = [];
@@ -179,6 +219,11 @@ class Kafka extends EventEmitter {
             });
     }
 
+    /**
+     * Sends payload to Kafka over Kafka Producer
+     * @param payload
+     * @returns {Promise<>}
+     */
     send(payload) {
         const me = this;
 
@@ -186,6 +231,10 @@ class Kafka extends EventEmitter {
             .then((producer) => producer.send(payload));
     }
 
+    /**
+     * Removes subscriberId from each Consumer subscription
+     * @param subscriberId
+     */
     removeSubscriber(subscriberId) {
         const me = this;
         const topicsToUnsubscribe = [];
@@ -201,12 +250,25 @@ class Kafka extends EventEmitter {
         }
     }
 
+    /**
+     * Checks if Kafka is available
+     * @returns {boolean}
+     */
     isAvailable() {
         const me = this;
 
         return me.consumer.isAvailable !== false;
     }
 
+    /**
+     * Message handler
+     * Emits next events:
+     *      - message
+     * @param messageSet
+     * @param topics
+     * @param partition
+     * @private
+     */
     _onMessage(messageSet, topics, partition) {
         const me = this;
 

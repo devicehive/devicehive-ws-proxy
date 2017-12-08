@@ -1,17 +1,24 @@
 const ProxyConfig = require(`./ProxyConfig`);
+const CONST = require(`./constants.json`);
 const Utils = require(`../utils`);
 const Message = require(`../lib/Message`);
-const webSocketServer = require(`./WebSocketServer`);
-const messageBuffer = require(`./MessageBuffer`);
-const internalCommunicatorFacade = require(`./InternalCommunicatorFacade`);
-const pluginManager = require(`./PluginManager`);
+const WebSocketServer = require(`./WebSocketServer`);
+const MessageBuffer = require(`./MessageBuffer`);
+const InternalCommunicatorFacade = require(`./InternalCommunicatorFacade`);
+const PluginManager = require(`./PluginManager`);
 
 
-webSocketServer.on(`clientConnect`, (clientId) => {
+const messageBuffer = new MessageBuffer();
+const internalCommunicatorFacade = new InternalCommunicatorFacade(ProxyConfig.COMMUNICATOR_TYPE);
+const pluginManager = new PluginManager();
+const webSocketServer = new WebSocketServer();
+
+
+webSocketServer.on(WebSocketServer.CLIENT_CONNECT_EVENT, (clientId) => {
 
 });
 
-webSocketServer.on(`clientMessage`, (clientId, data) => {
+webSocketServer.on(WebSocketServer.CLIENT_MESSAGE_EVENT, (clientId, data) => {
     try {
         const messages = JSON.parse(data);
 
@@ -23,27 +30,19 @@ webSocketServer.on(`clientMessage`, (clientId, data) => {
             }
 
             messageBuffer.push({ clientId: clientId, message: normalizedMessage });
-
-            webSocketServer.send(clientId, new Message({
-				id: message.id,
-				type: Message.ACK_TYPE,
-				action: message.action,
-				status: Message.SUCCESS_STATUS
-			}).toString());
         });
     } catch (error) {
-        respondWithFailure(clientId, error.message);
+        respondWithFailure(clientId, error.message, error.messageId);
     }
 });
 
-webSocketServer.on(`clientDisconnect`, (clientId) => {
+webSocketServer.on(WebSocketServer.CLIENT_DISCONNECT_EVENT, (clientId) => {
 	internalCommunicatorFacade.removeSubscriber(clientId);
     pluginManager.removeAuthentication(clientId);
 });
 
-internalCommunicatorFacade.on(`message`, (clientId, topic, message, partition) => {
+internalCommunicatorFacade.on(InternalCommunicatorFacade.MESSAGE_EVENT, (clientId, topic, message, partition) => {
     webSocketServer.send(clientId, new Message({
-		id: -1, //TODO
         type: Message.NOTIFICATION_TYPE,
         payload: message.value.toString(),
     }).toString());
@@ -62,7 +61,7 @@ setInterval(() => {
 
 
 /**
- *
+ * Process incoming message
  * @param clientId
  * @param message
  */
@@ -88,7 +87,7 @@ function processMessage({ clientId, message }) {
 
 
 /**
- *
+ * Process topic type messages
  * @param clientId
  * @param message
  */
@@ -114,7 +113,7 @@ function processTopicTypeMessage(clientId, message) {
 
 
 /**
- *
+ * Process plugin type messages
  * @param clientId
  * @param message
  */
@@ -131,7 +130,7 @@ function processPluginTypeMessage(clientId, message) {
 
 
 /**
- *
+ * Process notification type messages
  * @param clientId
  * @param message
  */
@@ -148,7 +147,7 @@ function processNotificationTypeMessage(clientId, message) {
 
 
 /**
- *
+ * Process Health type messages
  * @param clientId
  * @param message
  */
@@ -158,14 +157,16 @@ function processHealthTypeMessage(clientId, message) {
         type: Message.HEALTH_CHECK_TYPE,
         status: Message.SUCCESS_STATUS,
         payload: {
-        	status: internalCommunicatorFacade.isAvailable() ? `available` : `Not available` //TODO
+        	status: internalCommunicatorFacade.isAvailable() ?
+				CONST.PROXY_AVAILABLE_STATUS :
+				CONST.PROXY_NOT_AVAILABLE_STATUS
         }
     }).toString());
 }
 
 
 /**
- *
+ * Process topic create messages
  * @param clientId
  * @param message
  */
@@ -189,7 +190,7 @@ function processTopicCreateAction(clientId, message) {
 
 
 /**
- *
+ * Process topic list messages
  * @param clientId
  * @param message
  */
@@ -209,7 +210,7 @@ function processTopicListAction(clientId, message) {
 
 
 /**
- *
+ * Process topic subscription messages
  * @param clientId
  * @param message
  */
@@ -233,7 +234,7 @@ function processTopicSubscribeAction(clientId, message) {
 
 
 /**
- *
+ * Process topic unsubscribe message
  * @param clientId
  * @param message
  */
@@ -257,7 +258,7 @@ function processTopicUnsubscribeAction(clientId, message) {
 
 
 /**
- *
+ * Process notification create message
  * @param clientId
  * @param message
  */
@@ -278,7 +279,7 @@ function processNotificationCreateAction(clientId, message) {
 
 
 /**
- *
+ * Process plugin authenticate message
  * @param clientId
  * @param message
  */
@@ -287,17 +288,17 @@ function processPluginAuthenticateAction(clientId, message) {
 
 	if (token) {
         pluginManager.authenticate(clientId, token)
-			.then((info) => {
+			.then((authenticationResponse) => {
                 webSocketServer.send(clientId, new Message({
                     id: message.id,
                     type: Message.PLUGIN_TYPE,
                     action: Message.AUTHENTICATE_ACTION,
                     status: Message.SUCCESS_STATUS,
-                    payload: JSON.parse(info) // TODO
+                    payload: authenticationResponse
                 }).toString());
 			})
-			.catch((err) => {
-                respondWithFailure(clientId, err, message.id); // TODO
+			.catch((error) => {
+                respondWithFailure(clientId, error.message, message.id);
 			});
 	} else {
 		respondWithFailure(clientId, `Payload should consist property "token" to authenticate plugin`, message.id);
@@ -306,7 +307,7 @@ function processPluginAuthenticateAction(clientId, message) {
 
 
 /**
- *
+ * Responde to WebSocket client with error
  * @param clientId
  * @param errorMessage
  * @param messageId
@@ -316,6 +317,6 @@ function respondWithFailure (clientId, errorMessage, messageId) {
         id: messageId,
         type: Message.ACK_TYPE,
         status: Message.FAILED_STATUS,
-        payload: { message: errorMessage } // TODO
+        payload: { message: errorMessage }
     }).toString());
 }

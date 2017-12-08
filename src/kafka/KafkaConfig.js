@@ -2,8 +2,15 @@ const Config = require(`./config.json`);
 const Utils = require(`../../utils`);
 
 
+/**
+ * Kafka configuration class
+ */
 class KafkaConfig {
 
+    /**
+     * Creates new KafkaConfig
+     * Corresponding config.json file lies in the same directory
+     */
     constructor() {
         const me = this;
 
