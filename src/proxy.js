@@ -35,10 +35,18 @@ webSocketServer.on(WebSocketServer.CLIENT_MESSAGE_EVENT, (clientId, data) => {
             }
 
             messageBuffer.push({ clientId: clientId, message: normalizedMessage });
+
+            if (ProxyConfig.ACK_ON_EVERY_MESSAGE_ENABLED === true) {
+                webSocketServer.send(clientId, new Message({
+                    id: normalizedMessage.id,
+                    type: Message.ACK_TYPE,
+                    status: Message.SUCCESS_STATUS
+                }).toString());
+            }
         });
     } catch (error) {
         logger.warn(`Error on incoming WebSocket message: ${error.message}`);
-        respondWithFailure(clientId, error.message, error.messageId);
+        respondWithFailure(clientId, error.message, error.messageObject);
     }
 });
 
@@ -59,13 +67,13 @@ internalCommunicatorFacade.on(InternalCommunicatorFacade.MESSAGE_EVENT, (clientI
 
 setInterval(() => {
 	if (internalCommunicatorFacade.isAvailable() && messageBuffer.length > 0) {
-		const counter = messageBuffer.length < ProxyConfig.SPECIFIC.BUFFER_POLLING_MESSAGE_AMOUNT ?
-			messageBuffer.length : ProxyConfig.SPECIFIC.BUFFER_POLLING_MESSAGE_AMOUNT;
+		const counter = messageBuffer.length < ProxyConfig.MESSAGE_BUFFER.BUFFER_POLLING_MESSAGE_AMOUNT ?
+			messageBuffer.length : ProxyConfig.MESSAGE_BUFFER.BUFFER_POLLING_MESSAGE_AMOUNT;
 		for (let messageCounter = 0; messageCounter < counter; messageCounter++) {
 			processMessage(messageBuffer.shift());
 		}
 	}
-}, ProxyConfig.SPECIFIC.BUFFER_POLLING_INTERVAL_MS);
+}, ProxyConfig.MESSAGE_BUFFER.BUFFER_POLLING_INTERVAL_MS);
 
 
 /**
@@ -88,7 +96,7 @@ function processMessage({ clientId, message }) {
 			processHealthTypeMessage(clientId, message);
 			break;
 		default:
-			respondWithFailure(clientId, `Unsupported message type: ${message.type}`, message.id);
+			respondWithFailure(clientId, `Unsupported message type: ${message.type}`, message);
 			break;
 	}
 }
@@ -114,7 +122,7 @@ function processTopicTypeMessage(clientId, message) {
             processTopicUnsubscribeAction(clientId, message);
             break;
         default:
-            respondWithFailure(clientId, `Unsupported topic message action: ${message.action}`, message.id);
+            respondWithFailure(clientId, `Unsupported topic message action: ${message.action}`, message);
             break;
     }
 }
@@ -131,7 +139,7 @@ function processPluginTypeMessage(clientId, message) {
             processPluginAuthenticateAction(clientId, message);
             break;
         default:
-            respondWithFailure(clientId, `Unsupported plugin message action: ${message.action}`, message.id);
+            respondWithFailure(clientId, `Unsupported plugin message action: ${message.action}`, message);
             break;
     }
 }
@@ -148,7 +156,7 @@ function processNotificationTypeMessage(clientId, message) {
             processNotificationCreateAction(clientId, message);
             break;
         default:
-            respondWithFailure(clientId, `Unsupported notification message action: ${message.action}`, message.id);
+            respondWithFailure(clientId, `Unsupported notification message action: ${message.action}`, message);
             break;
     }
 }
@@ -192,9 +200,9 @@ function processTopicCreateAction(clientId, message) {
 
                 logger.info(`Topics ${createdTopicList} has been created (request from ${clientId})`);
 			})
-			.catch((error) => respondWithFailure(clientId, error.message, message.id));
+			.catch((error) => respondWithFailure(clientId, error.message, message));
 	} else {
-		respondWithFailure(clientId, `Payload should consist an array with topics to create`, message.id);
+		respondWithFailure(clientId, `Payload should consist an array with topics to create`, message);
 	}
 }
 
@@ -215,7 +223,7 @@ function processTopicListAction(clientId, message) {
 				payload: topicsList
 			}).toString());
 		})
-		.catch((error) => respondWithFailure(clientId, error.message, message.id));
+		.catch((error) => respondWithFailure(clientId, error.message, message));
 }
 
 
@@ -238,9 +246,9 @@ function processTopicSubscribeAction(clientId, message) {
 
                 logger.info(`Client ${clientId} has been subscribed to the next topics: ${topicSubscriptionList}`);
 		    })
-		    .catch((error) => respondWithFailure(clientId, error.message, message.id));
+		    .catch((error) => respondWithFailure(clientId, error.message, message));
     } else {
-	    respondWithFailure(clientId, `Payload should consist property "t" with list of topics to subscribe`, message.id);
+	    respondWithFailure(clientId, `Payload should consist property "t" with list of topics to subscribe`, message);
     }
 }
 
@@ -264,9 +272,9 @@ function processTopicUnsubscribeAction(clientId, message) {
 
                 logger.info(`Client ${clientId} has been unsubscribed from the next topics: ${topicUnsubscriptionList}`);
 			})
-			.catch((error) => respondWithFailure(clientId, error.message, message.id));
+			.catch((error) => respondWithFailure(clientId, error.message, message));
 	} else {
-		respondWithFailure(clientId, `Payload should consist property "t" with list of topics to unsubscribe`, message.id);
+		respondWithFailure(clientId, `Payload should consist property "t" with list of topics to unsubscribe`, message);
 	}
 }
 
@@ -288,7 +296,7 @@ function processNotificationCreateAction(clientId, message) {
 			action: Message.CREATE_ACTION,
 			status: Message.SUCCESS_STATUS
 		}).toString());
-	}).catch((error) => respondWithFailure(clientId, error.message, message.id));
+	}).catch((error) => respondWithFailure(clientId, error.message, message));
 }
 
 
@@ -314,10 +322,10 @@ function processPluginAuthenticateAction(clientId, message) {
                 logger.info(`Client plugin ${clientId} has been authenticated`);
 			})
 			.catch((error) => {
-                respondWithFailure(clientId, error.message, message.id);
+                respondWithFailure(clientId, error.message, message);
 			});
 	} else {
-		respondWithFailure(clientId, `Payload should consist property "token" to authenticate plugin`, message.id);
+		respondWithFailure(clientId, `Payload should consist property "token" to authenticate plugin`, message);
 	}
 }
 
@@ -326,12 +334,13 @@ function processPluginAuthenticateAction(clientId, message) {
  * Responde to WebSocket client with error
  * @param clientId
  * @param errorMessage
- * @param messageId
+ * @param message
  */
-function respondWithFailure (clientId, errorMessage, messageId) {
+function respondWithFailure (clientId, errorMessage, message = {}) {
     webSocketServer.send(clientId, new Message({
-        id: messageId,
-        type: Message.ACK_TYPE,
+        id: message.id,
+        type: message.type || Message.ACK_TYPE,
+		action: message.action,
         status: Message.FAILED_STATUS,
         payload: { message: errorMessage }
     }).toString());

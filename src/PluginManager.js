@@ -80,7 +80,7 @@ class PluginManager {
         if (!isAuthenticated &&
             message.type !== Message.PLUGIN_TYPE &&
             message.action !== Message.AUTHENTICATE_ACTION) {
-            throw new NotAuthorizedPluginError(message.id);
+            throw new NotAuthorizedPluginError(message);
         } else if (isAuthenticated === true) {
             const tokenPayload = me.getPluginTokenPayload(pluginKey);
 
@@ -90,23 +90,23 @@ class PluginManager {
                         case Message.CREATE_ACTION:
                             if (message.payload &&
                                 (message.payload.length > 1 || message.payload[0] !== tokenPayload.topic)) {
-                                throw new NoPermissionsPluginError(message.id);
+                                throw new NoPermissionsPluginError(message);
                             }
                             break;
                         case Message.SUBSCRIBE_ACTION:
                         case Message.UNSUBSCRIBE_ACTION:
                             if (message.payload && message.payload.t &&
                                 (message.payload.t.length > 1 || message.payload.t[0] !== tokenPayload.topic)) {
-                                throw new NoPermissionsPluginError(message.id);
+                                throw new NoPermissionsPluginError(message);
                             }
                             break;
                         case Message.LIST_ACTION:
-                            throw new NoPermissionsPluginError(message.id);
+                            throw new NoPermissionsPluginError(message);
                     }
                     break;
                 case Message.NOTIFICATION_TYPE:
                     if (NotificationMessagePayload.normalize(message.payload).topic !== tokenPayload.topic) {
-                        throw new NoPermissionsPluginError(message.id);
+                        throw new NoPermissionsPluginError(message);
                     }
                     break;
             }
