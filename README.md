@@ -9,7 +9,7 @@ allowing you to communicate with the next message brokers through WebSockets:
 
 # Configuration
 ## Proxy
-    <path-to-proxy-project>/src/config.json    
+    [path-to-proxy-project]/src/config.json    
 
 - **_WEB_SOCKET_SERVER_HOST_** - WebSocket server host address (default: "localhost");  
 - **_WEB_SOCKET_SERVER_PORT_** - WebSocket server port to listen (default: 3000);  
@@ -30,7 +30,7 @@ Each configuration field can be overridden with corresponding environmental vari
 
 ## Message Brokers
 ### Kafka
-    <path-to-proxy-project>/src/kafka/config.json   
+    [path-to-proxy-project]/src/kafka/config.json   
     
 - **_KAFKA_HOSTS_** - Address to Kafka server (default: "localhost:9092");  
 - **_KAFKA_CLIENT_ID_** - Kafka client name prefix (default: "ws-proxy-kafka-client");  
@@ -65,7 +65,7 @@ All messages are `JSON` based. Generic message structure looks like this:
 | t     | `String`        | Type: ["topic","notif","health","plugin"] |
 | a     | `String`        | Action: ["create","list","subscribe","unsubscribe","authenticate" "ack"]|
 | s     | `Int`           | Status, returned by the server, 0 if OK. |
-| p     | `String`        | Payload object |
+| p     | `Object`        | Payload object |
 
 Server can receive an list of messages in one batch.
 
@@ -83,7 +83,7 @@ Failure ACK:
 {
     "t" : "ack",
     "s" : 1,
-    "p" : { "m": <errorMessage> }
+    "p" : { "m": [errorMessage] }
 }
 ```
 
@@ -113,7 +113,7 @@ Error message:
 {
     "t": "topic",
     "a": "create",
-    "p": { "m": <errorMessage> },
+    "p": { "m": [errorMessage] },
     "s": 1 
 }
 ```
@@ -142,7 +142,7 @@ Error message:
 {
     "t": "topic",
     "a": "list",
-    "p": { "m": <errorMessage> },
+    "p": { "m": [errorMessage] },
     "s": 1 
 }
 ```
@@ -172,7 +172,7 @@ Error message:
 {
     "t": "topic",
     "a": "subscribe",
-    "p": { "m": <errorMessage> },
+    "p": { "m": [errorMessage] },
     "s": 1 
 }
 ```
@@ -202,7 +202,7 @@ Error message:
 {
     "t": "topic",
     "a": "unsubscribe",
-    "p": { "m": <errorMessage> },
+    "p": { "m": [errorMessage] },
     "s": 1 
 }
 ```
@@ -214,7 +214,7 @@ Request message:
 {
     "t": "plugin",
     "a": "authenticate",
-    "p": { "token": <pluginAccessToken> }
+    "p": { "token": [pluginAccessToken] }
 }
 ```
 
@@ -224,8 +224,8 @@ Response message:
     "t": "plugin", 
     "a": "authenticate",
     "p": {
-        "tpc": <pluginTopicName>,
-        "e": <pluginAccessTokenExpirationDate>,
+        "tpc": [pluginTopicName],
+        "e": [pluginAccessTokenExpirationDate],
         "t": 1 
     },
     "s": 0
@@ -242,7 +242,7 @@ Error message:
 {
     "t": "plugin",
     "a": "authenticate",
-    "p": { "m": <errorMessage> },
+    "p": { "m": [errorMessage] },
     "s": 1 
 }
 ```
@@ -256,7 +256,7 @@ Request message:
     "a": "create",
     "p": {
         "t": "topic1", 
-        "m": <notificationMessageSrting>, 
+        "m": [notificationMessageSrting], 
         "part": 1
     }
 }
@@ -276,7 +276,7 @@ Error message:
 {
     "t": "notif",
     "a": "create",
-    "p": { "m": <errorMessage> },
+    "p": { "m": [errorMessage] },
     "s": 1 
 }
 ```
@@ -287,7 +287,7 @@ Notification message
 ```json
 {
     "t": "notif",
-    "p": { "m": <notificationMessageString> }
+    "p": { "m": [notificationMessageString] }
 }
 ```
 
@@ -308,7 +308,7 @@ Response message:
     "p": {
         "prx": "Available|Not Available",
         "mb": "Available|Not Available",
-        "mbfp": <0-100%>,
+        "mbfp": [0-100%],
         "comm": "Available|Not Available"
     }
 }
