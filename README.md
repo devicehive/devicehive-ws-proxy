@@ -49,7 +49,7 @@ Each configuration field can be overridden with corresponding environmental vari
 # Message Structure
 ## General
 All messages are `JSON` based. Generic message structure looks like this:
-```json
+```
 {
   "id":"id of original message",
   "t":"message type",
@@ -71,7 +71,7 @@ Server can receive an list of messages in one batch.
 
 ### Ack message:
 Success ACK:
-```json
+```
 {
     "t" : "ack",
     "s" : 0
@@ -79,7 +79,7 @@ Success ACK:
 ```
 
 Failure ACK:
-```json
+```
 {
     "t" : "ack",
     "s" : 1,
@@ -90,7 +90,7 @@ Failure ACK:
 ## Topics
 ### Create
 Request message:
-```json
+```
 {
     "t": "topic",
     "a": "create", 
@@ -99,7 +99,7 @@ Request message:
 ```
 
 Response message:
-```json
+```
 {
     "t": "topic",
     "a": "create",
@@ -109,7 +109,7 @@ Response message:
 ```
 
 Error message:
-```json
+```
 {
     "t": "topic",
     "a": "create",
@@ -120,7 +120,7 @@ Error message:
 
 #### List
 Request message:
-```json
+```
 {
     "t": "topic",
     "a": "list"
@@ -128,7 +128,7 @@ Request message:
 ```
 
 Response message:
-```json
+```
 {
     "t": "topic",
     "a": "list",
@@ -138,7 +138,7 @@ Response message:
 ```
 
 Error message:
-```json
+```
 {
     "t": "topic",
     "a": "list",
@@ -149,7 +149,7 @@ Error message:
 
 ### Subscribe
 Request message:
-```json
+```
 {
     "t": "topic",
     "a": "subscribe",
@@ -158,7 +158,7 @@ Request message:
 ```
 
 Response message:
-```json
+```
 {
     "t": "topic",
     "a": "subscribe",
@@ -168,7 +168,7 @@ Response message:
 ```
 
 Error message:
-```json
+```
 {
     "t": "topic",
     "a": "subscribe",
@@ -179,7 +179,7 @@ Error message:
 
 ### Unsubscribe
 Request message:
-```json
+```
 {
     "t": "topic",
     "a": "unsubscribe",
@@ -188,7 +188,7 @@ Request message:
 ```
 
 Response message:
-```json
+```
 {
     "t":"topic",
     "a":"unsubscribe",
@@ -198,7 +198,7 @@ Response message:
 ```
 
 Error message:
-```json
+```
 {
     "t": "topic",
     "a": "unsubscribe",
@@ -210,7 +210,7 @@ Error message:
 ## Plugin
 ### Authenticate
 Request message:
-```json
+```
 {
     "t": "plugin",
     "a": "authenticate",
@@ -219,7 +219,7 @@ Request message:
 ```
 
 Response message:
-```json
+```
 {
     "t": "plugin", 
     "a": "authenticate",
@@ -238,7 +238,7 @@ Where:
 **_t_** - plugin token type (0 - refresh token, 1 - access token)  
 
 Error message:
-```json
+```
 {
     "t": "plugin",
     "a": "authenticate",
@@ -250,7 +250,7 @@ Error message:
 ## Notification
 ### Send
 Request message:
-```json
+```
 {
     "t": "notif",
     "a": "create",
@@ -263,7 +263,7 @@ Request message:
 ```
 
 Response message:
-```json
+```
 {
     "t": "notif", 
     "a": "create",
@@ -272,7 +272,7 @@ Response message:
 ```
 
 Error message:
-```json
+```
 {
     "t": "notif",
     "a": "create",
@@ -284,7 +284,7 @@ Error message:
 ### Receive
 Notifications are received automatically after subscription.
 Notification message
-```json
+```
 {
     "t": "notif",
     "p": { "m": [notificationMessageString] }
@@ -293,14 +293,14 @@ Notification message
 
 ## Healthcheck
 Request message
-```json
+```
 {
     "t": "health"
 }
 ```
 
 Response message:
-```json
+```
 {
     "t":"health",
     "s":0,
