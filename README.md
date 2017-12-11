@@ -11,18 +11,18 @@ allowing you to communicate with the next message brokers through WebSockets:
 ## Proxy
     <path-to-proxy-project>/src/config.json    
 
-- **_WEB_SOCKET_SERVER_HOST_** (default: "localhost");  
-- **_WEB_SOCKET_SERVER_PORT_** (default: 3000);  
-- **_WEB_SOCKET_PING_INTERVAL_S_** (default: 30);  
-- **_ACK_ON_EVERY_MESSAGE_ENABLED_** (default: false);  
-- **_AUTH_SERVICE_ENDPOINT_** (default: "http://localhost:8090/dh/rest");  
-- **_ENABLE_PLUGIN_MANGER_** (default: false);  
-- **_COMMUNICATOR_TYPE_** (default: "kafka");  
-- **_APP_LOG_LEVEL_** (default: "info");  
+- **_WEB_SOCKET_SERVER_HOST_** - WebSocket server host address (default: "localhost");  
+- **_WEB_SOCKET_SERVER_PORT_** - WebSocket server port to listen (default: 3000);  
+- **_WEB_SOCKET_PING_INTERVAL_S_** - Time interval in seconds between ping messages (default: 30);  
+- **_ACK_ON_EVERY_MESSAGE_ENABLED_** - Enable/disable acknowledgment for every received message (default: false);  
+- **_AUTH_SERVICE_ENDPOINT_** - DeviceHive Auth REST service address (default: "http://localhost:8090/dh/rest");  
+- **_ENABLE_PLUGIN_MANGER_** - Enable plugin manager (default: false);  
+- **_COMMUNICATOR_TYPE_** - Message broker that will be used internally (default: "kafka");  
+- **_APP_LOG_LEVEL_** - Proxy logger level: debug, info, warn, error (default: "info");  
 - **_MESSAGE_BUFFER:_**  
-    - **_BUFFER_POLLING_INTERVAL_MS_** (default: 50);  
-    - **_BUFFER_POLLING_MESSAGE_AMOUNT_** (default: 500);  
-    - **_MAX_SIZE_MB_** (default: 128);  
+    - **_BUFFER_POLLING_INTERVAL_MS_** - Message buffer polling interval in ms (default: 50);  
+    - **_BUFFER_POLLING_MESSAGE_AMOUNT_** - Amount of messages that will be shifted from message buffer on each buffer polling (default: 500);  
+    - **_MAX_SIZE_MB_** - Maximum Message Buffer size in MB (default: 128);  
 
 Each configuration field can be overridden with corresponding environmental variable with "PROXY" prefix, for example:
 
@@ -32,10 +32,10 @@ Each configuration field can be overridden with corresponding environmental vari
 ### Kafka
     <path-to-proxy-project>/src/kafka/config.json   
     
-- **_KAFKA_HOSTS_** (default: "localhost:9092");  
-- **_KAFKA_CLIENT_ID_** (default: "ws-proxy-kafka-client");  
-- **_CONSUMER_GROUP_ID_** (default: "ws-proxy-consumer-group");  
-- **_LOGGER_LEVEL_** (default: 0);  
+- **_KAFKA_HOSTS_** - Address to Kafka server (default: "localhost:9092");  
+- **_KAFKA_CLIENT_ID_** - Kafka client name prefix (default: "ws-proxy-kafka-client");  
+- **_CONSUMER_GROUP_ID_** - Kafka consumer group prefix (default: "ws-proxy-consumer-group");  
+- **_LOGGER_LEVEL_** Kafka logger level (default: 0);  
     
 Each configuration field can be overridden with corresponding environmental variable with "KAFKA" prefix, for example:
 

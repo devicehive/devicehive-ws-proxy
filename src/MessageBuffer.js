@@ -129,12 +129,12 @@ class MessageBuffer extends EventEmitter {
 
     /**
      * Returns fill percentage
-     * @returns {Number}
+     * @returns {String}
      */
     getFillPercentage() {
         const me = this;
 
-        return me.dataSize * 100 / me.maxDataSizeB;
+        return (me.dataSize * 100 / me.maxDataSizeB).toFixed(2);
     }
 
     /**
