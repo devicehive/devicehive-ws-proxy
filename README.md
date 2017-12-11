@@ -51,7 +51,7 @@ Each configuration field can be overridden with corresponding environmental vari
 All messages are `JSON` based. Generic message structure looks like this:
 ```json
 {
-  "id":"id or original message",
+  "id":"id of original message",
   "t":"message type",
   "a":"action",
   "s":"success",
@@ -302,7 +302,6 @@ Request message
 Response message:
 ```json
 {
-    "id":1500,
     "t":"health",
     "s":0,
     "p": {
