@@ -308,7 +308,7 @@ Response message:
     "p": {
         "prx": "Available|Not Available",
         "mb": "Available|Not Available",
-        "mbfp": [0-100%],
+        "mbfp": [0-100],
         "comm": "Available|Not Available"
     }
 }
