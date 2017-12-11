@@ -15,8 +15,10 @@
         "jsonwebtoken": "^8.1.0",
         "lodash": "^4.17.4",
         "no-kafka": "^3.2.8",
+        "object-sizeof": "^1.2.0",
         "request": "^2.83.0",
         "uuid": "^3.1.0",
+        "shortid": "^2.2.8",
         "winston": "^2.4.0",
         "ws": "^3.3.2"
     },

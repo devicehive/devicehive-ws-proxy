@@ -3,7 +3,7 @@ const EventEmitter = require(`events`);
 const WebSocket = require(`ws`);
 const Utils = require(`../utils`);
 const debug = require(`debug`)(`websocketserver`);
-const uuid = require(`uuid/v1`);
+const shortid = require('shortid');
 
 
 /**
@@ -92,7 +92,7 @@ class WebSocketServer extends EventEmitter {
      */
 	_processNewConnection(ws) {
 		const me = this;
-		const clientId = uuid();
+		const clientId = shortid.generate();
 
 		me.clientIdMap.set(clientId, ws);
         ws.isAlive = true;

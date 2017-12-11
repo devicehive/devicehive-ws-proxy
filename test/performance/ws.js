@@ -2,7 +2,7 @@ const WebSocket = require('ws');
 const Message = require(`../../lib/Message`);
 const status = require('node-status');
 
-const TOTAL_MESSAGES = 300000;
+const TOTAL_MESSAGES = 600000;
 
 const sendedStatus = status.addItem('sendedStatus', { max: TOTAL_MESSAGES });
 const recievedStatus = status.addItem('recievedStatus', { max: TOTAL_MESSAGES });
@@ -60,7 +60,7 @@ ws.on('message', function incoming(data) {
 	} else if (message.type === Message.TOPIC_TYPE && message.action === Message.SUBSCRIBE_ACTION) {
 		interval = setInterval(() => {
 			if (sendCounter < TOTAL_MESSAGES) {
-				for(let i = 0; i < 30; i++) {
+				for(let i = 0; i < 60; i++) {
 					ws.send(new Message({
 						type: Message.NOTIFICATION_TYPE,
 						action: Message.CREATE_ACTION,

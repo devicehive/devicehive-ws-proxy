@@ -10,7 +10,7 @@ const ApplicationLogger = require(`./ApplicationLogger`);
 
 
 const logger = new ApplicationLogger(CONST.APPLICATION_TAG, ProxyConfig.APP_LOG_LEVEL);
-const messageBuffer = new MessageBuffer();
+const messageBuffer = new MessageBuffer(ProxyConfig.MESSAGE_BUFFER.MAX_SIZE_MB);
 const internalCommunicatorFacade = new InternalCommunicatorFacade(ProxyConfig.COMMUNICATOR_TYPE);
 const pluginManager = new PluginManager();
 const webSocketServer = new WebSocketServer();
@@ -285,7 +285,7 @@ function processTopicUnsubscribeAction(clientId, message) {
  * @param message
  */
 function processNotificationCreateAction(clientId, message) {
-	internalCommunicatorFacade.send({
+	internalCommunicatorFacade.send({ //TODO
 		topic: message.payload.t,
 		message: { value: message.payload.m },
 		partition: message.payload.part

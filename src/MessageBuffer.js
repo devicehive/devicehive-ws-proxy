@@ -1,76 +1,29 @@
-const ProxyConfig = require(`./ProxyConfig`);
 const FIFO = require(`fifo`);
 const EventEmitter = require(`events`);
+const FullMessageBufferError = require(`../lib/errors/messageBuffer/FullMessageBufferError`);
+const sizeof = require('object-sizeof');
 const debug = require(`debug`)(`messagebuffer`);
 
-//TODO
-function memorySizeOf(obj) {
-    var bytes = 0;
-
-    function sizeOf(obj) {
-        if(obj !== null && obj !== undefined) {
-            switch(typeof obj) {
-                case 'number':
-                    bytes += 8;
-                    break;
-                case 'string':
-                    bytes += obj.length * 2;
-                    break;
-                case 'boolean':
-                    bytes += 4;
-                    break;
-                case 'object':
-                    var objClass = Object.prototype.toString.call(obj).slice(8, -1);
-                    if(objClass === 'Object' || objClass === 'Array') {
-                        for(var key in obj) {
-                            if(!obj.hasOwnProperty(key)) continue;
-                            sizeOf(obj[key]);
-                        }
-                    } else bytes += obj.toString().length * 2;
-                    break;
-            }
-        }
-        return bytes;
-    };
-
-    function formatByteSize(bytes) {
-        if(bytes < 1024) return bytes + " bytes";
-        else if(bytes < 1048576) return(bytes / 1024).toFixed(3) + " KiB";
-        else if(bytes < 1073741824) return(bytes / 1048576).toFixed(3) + " MiB";
-        else return(bytes / 1073741824).toFixed(3) + " GiB";
-    };
-
-    return formatByteSize(sizeOf(obj));
-};
 
 /**
  * Message buffer class. Implements FIFO stack functionality
- * @event notEmpty
- * @event empty
- * @event filled25
- * @event filled50
- * @event filled75
- * @event full
  */
 class MessageBuffer extends EventEmitter {
 
-    static get NOT_EMPTY_EVENT() { return `notEmpty`; }
-    static get EMPTY_EVENT() { return `empty`; }
-    static get FILLED_25_EVENT() { return `filled25`; }
-    static get FILLED_50_EVENT() { return `filled50`; }
-    static get FILLED_75_EVENT() { return `filled75`; }
-    static get FULL_EVENT() { return `full`; }
-
-
     /**
      * Creates new MessageBuffer
+     * @param maxDataSizeMB maximum messages data size in buffer (in MB)
      */
-    constructor() {
+    constructor(maxDataSizeMB) {
         super();
 
         const me = this;
 
         me.fifo = new FIFO();
+        me.maxDataSizeB = me.freeMemory = maxDataSizeMB * 1048576;
+        me.dataSize = 0;
+
+        debug(`Maximum size of message buffer: ${maxDataSizeMB} Mb`);
     }
 
     /**
@@ -91,15 +44,16 @@ class MessageBuffer extends EventEmitter {
      */
     push(message) {
         const me = this;
-        const wasEmpty = me.length === 0;
+        const sizeOfMessage = sizeof(message);
+
+        if (me.getFreeMemory() < sizeOfMessage) {
+            throw new FullMessageBufferError(message.message);
+        }
 
         me.fifo.push(message);
+        me._incrementDataSize(sizeOfMessage);
 
         debug(`Pushed new message, length: ${me.length}`);
-
-        if (wasEmpty) {
-            me.emit(MessageBuffer.NOT_EMPTY_EVENT);
-        }
     }
 
     /**
@@ -110,15 +64,16 @@ class MessageBuffer extends EventEmitter {
      */
     unshift(message) {
         const me = this;
-        const wasEmpty = me.length === 0;
+        const sizeOfMessage = sizeof(message);
+
+        if (me.getFreeMemory() < sizeOfMessage) {
+            throw new FullMessageBufferError(message.message);
+        }
 
         me.fifo.unshift(message);
+        me._incrementDataSize(sizeOfMessage);
 
         debug(`Unshifted new message, length: ${me.length}`);
-
-        if (wasEmpty) {
-            me.emit(MessageBuffer.NOT_EMPTY_EVENT);
-        }
     }
 
     /**
@@ -129,14 +84,11 @@ class MessageBuffer extends EventEmitter {
      */
     shift() {
         const me = this;
-        const willBeEmpty = me.length === 1;
         const message = me.fifo.shift();
 
-        debug(`Shifted message, length: ${me.length}`);
+        me._decrementDataSize(sizeof(message));
 
-        if (willBeEmpty) {
-            me.emit(MessageBuffer.EMPTY_EVENT);
-        }
+        debug(`Shifted message, length: ${me.length}`);
 
         return message;
     }
@@ -160,10 +112,61 @@ class MessageBuffer extends EventEmitter {
         const me = this;
 
         me.fifo.clear();
+        me._resetDataSize();
 
         debug(`Buffer cleared`);
+    }
 
-        me.emit(MessageBuffer.EMPTY_EVENT);
+    getFreeMemory() {
+        const me = this;
+
+        return me.freeMemory;
+    }
+
+    /**
+     * Increment data size counter
+     * @param bytesAmount
+     * @private
+     */
+    _incrementDataSize(bytesAmount) {
+        const me = this;
+
+        me.dataSize += bytesAmount;
+        me._checkMemoryUsage();
+
+    }
+
+    /**
+     * Decrement data size counter
+     * @param bytesAmount
+     * @private
+     */
+    _decrementDataSize(bytesAmount) {
+        const me = this;
+
+        me.dataSize -= bytesAmount;
+        me._checkMemoryUsage();
+    }
+
+    /**
+     * Reset to 0 data size counter
+     * @private
+     */
+    _resetDataSize() {
+        const me = this;
+
+        me.dataSize = 0;
+        me._checkMemoryUsage();
+    }
+
+    /**
+     * Monitoring memory usage and firing corresponding events
+     * @private
+     */
+    _checkMemoryUsage() {
+        const me = this;
+
+        me.freeMemory = me.maxDataSizeB - me.dataSize;
     }
 }
 
