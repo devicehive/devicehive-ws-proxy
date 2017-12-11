@@ -117,10 +117,24 @@ class MessageBuffer extends EventEmitter {
         debug(`Buffer cleared`);
     }
 
+    /**
+     * Returns free memory in bytes
+     * @returns {Number}
+     */
     getFreeMemory() {
         const me = this;
 
         return me.freeMemory;
+    }
+
+    /**
+     * Returns fill percentage
+     * @returns {Number}
+     */
+    getFillPercentage() {
+        const me = this;
+
+        return me.dataSize * 100 / me.maxDataSizeB;
     }
 
     /**

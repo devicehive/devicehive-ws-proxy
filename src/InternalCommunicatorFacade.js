@@ -47,8 +47,8 @@ class InternalCommunicatorFacade extends EventEmitter {
 
 		me.communicator = InternalCommunicatorFacade.createCommunicator(communicatorType);
 
-		me.communicator.on(InternalCommunicatorFacade.MESSAGE_EVENT, (subscriberId, topic, message, partition) => {
-			me.emit(InternalCommunicatorFacade.MESSAGE_EVENT, subscriberId, topic, message, partition);
+		me.communicator.on(InternalCommunicatorFacade.MESSAGE_EVENT, (subscriberId, topic, payload) => {
+			me.emit(InternalCommunicatorFacade.MESSAGE_EVENT, subscriberId, topic, payload);
         });
 	}
 

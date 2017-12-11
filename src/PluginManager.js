@@ -1,6 +1,6 @@
 const ProxyConfig = require(`./ProxyConfig`);
 const Message = require(`../lib/Message`);
-const NotificationMessagePayload = require(`../lib/NotificationMessagePayload`);
+const NotificationCreateMessagePayload = require(`../lib/messagePayload/NotificationCreateMessagePayload`);
 const TokenPayload = require(`../lib/TokenPayload`);
 const AuthenticationPluginError = require(`../lib/errors/plugin/AuthenticationPluginError`);
 const NotAuthorizedPluginError = require(`../lib/errors/plugin/NotAuthorizedPluginError`);
@@ -66,6 +66,7 @@ class PluginManager {
     }
 
     /**
+     * TODO separate each check
      * Checks that plugin by pluginKey has permissions for operation
      * Throws next errors:
      *      - NotAuthorizedPluginError
@@ -105,7 +106,7 @@ class PluginManager {
                     }
                     break;
                 case Message.NOTIFICATION_TYPE:
-                    if (NotificationMessagePayload.normalize(message.payload).topic !== tokenPayload.topic) {
+                    if (NotificationCreateMessagePayload.normalize(message.payload).topic !== tokenPayload.topic) {
                         throw new NoPermissionsPluginError(message);
                     }
                     break;

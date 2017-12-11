@@ -136,19 +136,9 @@ class Kafka extends EventEmitter {
 
         return me.getProducer()
             .then((producer) => producer.client.metadataRequest())
-            .then((metadata) => {
-                const result = [];
-
-                metadata.topicMetadata
-                    .filter((topicObject) => !topicObject.topicName.startsWith(Kafka.INTERNAL_TOPIC_PREFIX))
-                    .forEach((topicObject) => {
-                        topicObject.partitionMetadata.forEach((topicPartitionData) => {
-                            result.push({ topic: topicObject.topicName, partition: topicPartitionData.partitionId })
-                        });
-                    });
-
-                return result;
-            });
+            .then((metadata) => metadata.topicMetadata
+                .filter((topicObject) => !topicObject.topicName.startsWith(Kafka.INTERNAL_TOPIC_PREFIX))
+                .map((topicObject) => topicObject.topicName));
     }
 
     /**
@@ -278,7 +268,7 @@ class Kafka extends EventEmitter {
             if (subscriptionSet) {
                 subscriptionSet.forEach((subscriberId) => {
                     messageSet.forEach((message) => {
-                        me.emit(`message`, subscriberId, topic, message.message, partition);
+                        me.emit(`message`, subscriberId, topic, message.message.value, partition);
                     });
                 });
             }

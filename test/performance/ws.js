@@ -38,9 +38,9 @@ ws.on('message', function incoming(data) {
 	const message = Message.normalize(JSON.parse(data));
 
 	if (message.type === Message.NOTIFICATION_TYPE && message.action !== Message.CREATE_ACTION) {
-        const checkCount = parseInt(message.payload);
+        const checkCount = parseInt(message.payload.m);
 
-        if (message.payload.startsWith(`${process.pid}`)) {
+        if (message.payload.m.startsWith(`${process.pid}`)) {
             if (!counterSet.has(checkCount)) {
                 counterSet.add(checkCount);
                 counter++;
@@ -60,7 +60,7 @@ ws.on('message', function incoming(data) {
 	} else if (message.type === Message.TOPIC_TYPE && message.action === Message.SUBSCRIBE_ACTION) {
 		interval = setInterval(() => {
 			if (sendCounter < TOTAL_MESSAGES) {
-				for(let i = 0; i < 60; i++) {
+				for(let i = 0; i < 30; i++) {
 					ws.send(new Message({
 						type: Message.NOTIFICATION_TYPE,
 						action: Message.CREATE_ACTION,
