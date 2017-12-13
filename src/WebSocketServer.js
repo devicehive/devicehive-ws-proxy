@@ -1,4 +1,4 @@
-const ProxyConfig = require(`./ProxyConfig`);
+const ProxyConfig = require(`../config`).proxy;
 const EventEmitter = require(`events`);
 const WebSocket = require(`ws`);
 const Utils = require(`../utils`);

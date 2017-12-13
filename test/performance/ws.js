@@ -1,5 +1,5 @@
 const WebSocket = require('ws');
-const Message = require(`../../lib/Message`);
+const { Message, MessageUtils } = require(`devicehive-proxy-message`);
 const status = require('node-status');
 
 const TOTAL_MESSAGES = 600000;
@@ -26,8 +26,8 @@ console = status.console();
 
 ws.on('open', function open() {
 	ws.send(new Message({
-		type: Message.TOPIC_TYPE,
-		action: Message.SUBSCRIBE_ACTION,
+		type: MessageUtils.TOPIC_TYPE,
+		action: MessageUtils.SUBSCRIBE_ACTION,
 		payload: {
 			t: ["topicN"]
 		}
@@ -35,9 +35,9 @@ ws.on('open', function open() {
 });
 
 ws.on('message', function incoming(data) {
-	const message = Message.normalize(JSON.parse(data));
+	const message = MessageUtils.normalize(JSON.parse(data));
 
-	if (message.type === Message.NOTIFICATION_TYPE && message.action !== Message.CREATE_ACTION) {
+	if (message.type === MessageUtils.NOTIFICATION_TYPE && message.action !== MessageUtils.CREATE_ACTION) {
         const checkCount = parseInt(message.payload.m);
 
         if (message.payload.m.startsWith(`${process.pid}`)) {
@@ -57,13 +57,13 @@ ws.on('message', function incoming(data) {
                 process.exit();
             }
         }
-	} else if (message.type === Message.TOPIC_TYPE && message.action === Message.SUBSCRIBE_ACTION) {
+	} else if (message.type === MessageUtils.TOPIC_TYPE && message.action === MessageUtils.SUBSCRIBE_ACTION) {
 		interval = setInterval(() => {
 			if (sendCounter < TOTAL_MESSAGES) {
 				for(let i = 0; i < 30; i++) {
 					ws.send(new Message({
-						type: Message.NOTIFICATION_TYPE,
-						action: Message.CREATE_ACTION,
+						type: MessageUtils.NOTIFICATION_TYPE,
+						action: MessageUtils.CREATE_ACTION,
 						payload: {t: "topicN", m: `${process.pid}${sendCounter}`}
 					}).toString());
 					sendCounter++;

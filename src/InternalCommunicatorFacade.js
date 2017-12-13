@@ -1,4 +1,3 @@
-const ProxyConfig = require(`./ProxyConfig`);
 const EventEmitter = require(`events`);
 const Kafka = require(`./kafka/Kafka`);
 const debug = require(`debug`)(`internalcommunicatorfacade`);

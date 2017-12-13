@@ -1,6 +1,6 @@
+const KafkaConfig = require(`../../config`).kafka;
 const EventEmitter = require(`events`);
 const Utils = require(`../../utils`);
-const KafkaConfig = require(`./KafkaConfig`);
 const NoKafka = require(`no-kafka`);
 const Consumer = require(`./Consumer`);
 const uuid = require(`uuid/v1`);

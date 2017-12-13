@@ -1,7 +1,5 @@
-const ProxyConfig = require(`./ProxyConfig`);
-const Message = require(`../lib/Message`);
-const NotificationCreateMessagePayload = require(`../lib/messagePayload/NotificationCreateMessagePayload`);
-const TokenPayload = require(`../lib/TokenPayload`);
+const ProxyConfig = require(`../config`).proxy;
+const { MessageUtils, payload } = require(`devicehive-proxy-message`);
 const AuthenticationPluginError = require(`../lib/errors/plugin/AuthenticationPluginError`);
 const NotAuthorizedPluginError = require(`../lib/errors/plugin/NotAuthorizedPluginError`);
 const NoPermissionsPluginError = require(`../lib/errors/plugin/NoPermissionsPluginError`);
@@ -9,7 +7,8 @@ const request = require(`request`);
 const jwt = require('jsonwebtoken');
 const debug = require(`debug`)(`pluginmanager`);
 
-
+const NotificationCreatePayload = payload.NotificationCreatePayload;
+const TokenPayload = payload.TokenPayload;
 /**
  * Plugin manager class
  */
@@ -48,11 +47,13 @@ class PluginManager {
                     const authenticationResponse = JSON.parse(body);
 
                     if (!err && response.statusCode === 200) {
-                        me.pluginKeyTokenPayloadMap.set(pluginKey, TokenPayload.normalize(jwt.decode(token).payload));
+                        const tokenPayload = TokenPayload.normalize(jwt.decode(token).payload);
+
+                        me.pluginKeyTokenPayloadMap.set(pluginKey, tokenPayload);
 
                         debug(`Plugin with key: ${pluginKey} has been authenticated`);
 
-                        resolve(authenticationResponse);
+                        resolve(tokenPayload);
                     } else {
                         debug(`Plugin with key: ${pluginKey} has not been authenticated`);
 
@@ -79,34 +80,34 @@ class PluginManager {
         const isAuthenticated = me.isAuthenticated(pluginKey);
 
         if (!isAuthenticated &&
-            message.type !== Message.PLUGIN_TYPE &&
-            message.action !== Message.AUTHENTICATE_ACTION) {
+            message.type !== MessageUtils.PLUGIN_TYPE &&
+            message.action !== MessageUtils.AUTHENTICATE_ACTION) {
             throw new NotAuthorizedPluginError(message);
         } else if (isAuthenticated === true) {
             const tokenPayload = me.getPluginTokenPayload(pluginKey);
 
             switch(message.type) {
-                case Message.TOPIC_TYPE:
+                case MessageUtils.TOPIC_TYPE:
                     switch(message.action) {
-                        case Message.CREATE_ACTION:
+                        case MessageUtils.CREATE_ACTION:
                             if (message.payload &&
                                 (message.payload.length > 1 || message.payload[0] !== tokenPayload.topic)) {
                                 throw new NoPermissionsPluginError(message);
                             }
                             break;
-                        case Message.SUBSCRIBE_ACTION:
-                        case Message.UNSUBSCRIBE_ACTION:
+                        case MessageUtils.SUBSCRIBE_ACTION:
+                        case MessageUtils.UNSUBSCRIBE_ACTION:
                             if (message.payload && message.payload.t &&
                                 (message.payload.t.length > 1 || message.payload.t[0] !== tokenPayload.topic)) {
                                 throw new NoPermissionsPluginError(message);
                             }
                             break;
-                        case Message.LIST_ACTION:
+                        case MessageUtils.LIST_ACTION:
                             throw new NoPermissionsPluginError(message);
                     }
                     break;
-                case Message.NOTIFICATION_TYPE:
-                    if (NotificationCreateMessagePayload.normalize(message.payload).topic !== tokenPayload.topic) {
+                case MessageUtils.NOTIFICATION_TYPE:
+                    if (NotificationCreatePayload.normalize(message.payload).topic !== tokenPayload.topic) {
                         throw new NoPermissionsPluginError(message);
                     }
                     break;
