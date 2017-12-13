@@ -1,14 +1,14 @@
 const ProxyConfig = require(`../config`).proxy;
-const { MessageUtils, payload } = require(`devicehive-proxy-message`);
+const { Message, MessageUtils, payload } = require(`devicehive-proxy-message`);
 const AuthenticationPluginError = require(`../lib/errors/plugin/AuthenticationPluginError`);
 const NotAuthorizedPluginError = require(`../lib/errors/plugin/NotAuthorizedPluginError`);
 const NoPermissionsPluginError = require(`../lib/errors/plugin/NoPermissionsPluginError`);
 const request = require(`request`);
 const jwt = require('jsonwebtoken');
 const debug = require(`debug`)(`pluginmanager`);
-
-const NotificationCreatePayload = payload.NotificationCreatePayload;
 const TokenPayload = payload.TokenPayload;
+
+
 /**
  * Plugin manager class
  */
@@ -107,7 +107,7 @@ class PluginManager {
                     }
                     break;
                 case MessageUtils.NOTIFICATION_TYPE:
-                    if (NotificationCreatePayload.normalize(message.payload).topic !== tokenPayload.topic) {
+                    if (Message.normalize(message).payload.topic !== tokenPayload.topic) {
                         throw new NoPermissionsPluginError(message);
                     }
                     break;

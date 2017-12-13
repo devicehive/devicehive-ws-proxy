@@ -1,5 +1,5 @@
 const ProxyConfig = require(`../config`).proxy;
-const { Message, MessageUtils, payload } = require(`devicehive-proxy-message`);
+const { Message, MessageUtils } = require(`devicehive-proxy-message`);
 const CONST = require(`./constants.json`);
 const Utils = require(`../utils`);
 const WebSocketServer = require(`./WebSocketServer`);
