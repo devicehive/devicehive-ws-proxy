@@ -27,20 +27,20 @@ console = status.console();
 ws.on('open', function open() {
 	ws.send(new Message({
 		type: MessageUtils.TOPIC_TYPE,
-		action: MessageUtils.SUBSCRIBE_ACTION,
+		action: MessageUtils.CREATE_ACTION,
 		payload: {
-			t: ["topicN"]
+			topicList: ["topicN"]
 		}
 	}).toString());
 });
 
 ws.on('message', function incoming(data) {
-	const message = MessageUtils.normalize(JSON.parse(data));
+	const message = Message.normalize(JSON.parse(data));
 
 	if (message.type === MessageUtils.NOTIFICATION_TYPE && message.action !== MessageUtils.CREATE_ACTION) {
-        const checkCount = parseInt(message.payload.m);
+        const checkCount = parseInt(message.payload.message);
 
-        if (message.payload.m.startsWith(`${process.pid}`)) {
+        if (message.payload.message.startsWith(`${process.pid}`)) {
             if (!counterSet.has(checkCount)) {
                 counterSet.add(checkCount);
                 counter++;
@@ -64,7 +64,7 @@ ws.on('message', function incoming(data) {
 					ws.send(new Message({
 						type: MessageUtils.NOTIFICATION_TYPE,
 						action: MessageUtils.CREATE_ACTION,
-						payload: {t: "topicN", m: `${process.pid}${sendCounter}`}
+						payload: {topic: "topicN", message: `${process.pid}${sendCounter}`}
 					}).toString());
 					sendCounter++;
 					sendedStatus.inc();
@@ -73,5 +73,13 @@ ws.on('message', function incoming(data) {
 				clearInterval(interval);
 			}
 		}, 1);
-	}
+	} else if (message.type === MessageUtils.TOPIC_TYPE && message.action === MessageUtils.CREATE_ACTION) {
+        ws.send(new Message({
+            type: MessageUtils.TOPIC_TYPE,
+            action: MessageUtils.SUBSCRIBE_ACTION,
+            payload: {
+                topicList: ["topicN"]
+            }
+        }).toString());
+    }
 });

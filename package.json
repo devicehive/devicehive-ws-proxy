@@ -11,9 +11,9 @@
     "dependencies": {
         "bluebird": "^3.5.1",
         "debug": "^2.6.9",
-        "devicehive-proxy-message": "^1.0.5",
+        "devicehive-proxy-message": "^1.0.7",
         "fifo": "^2.3.0",
-        "json-evn-configurator": "^1.0.0",
+        "json-evn-configurator": "^1.0.1",
         "jsonwebtoken": "^8.1.0",
         "lodash": "^4.17.4",
         "no-kafka": "^3.2.8",

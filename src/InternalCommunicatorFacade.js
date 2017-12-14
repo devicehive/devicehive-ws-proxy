@@ -12,6 +12,8 @@ const debug = require(`debug`)(`internalcommunicatorfacade`);
 class InternalCommunicatorFacade extends EventEmitter {
 
     static get MESSAGE_EVENT() { return `message`; }
+    static get AVAILABLE_EVENT() { return `available`; }
+    static get NOT_AVAILABLE_EVENT() { return `notAvailable`; }
 
     static get KAFKA_COMMUNICATOR() { return `kafka`; }
     static get DEFAULT_COMMUNICATOR() { return InternalCommunicatorFacade.KAFKA_COMMUNICATOR; }
@@ -48,6 +50,14 @@ class InternalCommunicatorFacade extends EventEmitter {
 
 		me.communicator.on(InternalCommunicatorFacade.MESSAGE_EVENT, (subscriberId, topic, payload) => {
 			me.emit(InternalCommunicatorFacade.MESSAGE_EVENT, subscriberId, topic, payload);
+        });
+
+        me.communicator.on(InternalCommunicatorFacade.AVAILABLE_EVENT, () => {
+            me.emit(InternalCommunicatorFacade.AVAILABLE_EVENT);
+        });
+
+        me.communicator.on(InternalCommunicatorFacade.NOT_AVAILABLE_EVENT, () => {
+            me.emit(InternalCommunicatorFacade.NOT_AVAILABLE_EVENT);
         });
 	}
 

@@ -17,6 +17,39 @@ Promise.config({
  */
 class Consumer extends NoKafka.GroupConsumer {
 
+    constructor(options, onStateChange) {
+        super(options);
+
+        const me = this;
+
+        me.watcher = {
+            isAvailable: false
+        };
+
+        me.proxy = new Proxy(me.watcher, {
+            set(target, prop, value) {
+                if (onStateChange && prop === `isAvailable` && me.watcher.isAvailable !== value) {
+                    onStateChange(value);
+                }
+
+                target[prop] = value;
+                return true;
+            }
+        });
+    }
+
+    get isAvailable() {
+        const me = this;
+
+        return me.proxy.isAvailable;
+    }
+
+    set isAvailable(value) {
+        const me = this;
+
+        me.proxy.isAvailable = value;
+    }
+
     /**
      * Corresponds to _heartbeat method of GroupConsumer
      * Added isAvailable flag to give an ability to understand state of consumer

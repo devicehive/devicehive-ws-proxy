@@ -21,6 +21,10 @@ const debug = require(`debug`)(`kafka`);
  */
 class Kafka extends EventEmitter {
 
+    static get MESSAGE_EVENT() { return `message`; }
+    static get AVAILABLE_EVENT() { return `available`; }
+    static get NOT_AVAILABLE_EVENT() { return `notAvailable`; }
+
     static get INTERNAL_TOPIC_PREFIX() { return `__` };
     static get HEALTH_TOPIC() { return `__health__` };
 
@@ -51,7 +55,7 @@ class Kafka extends EventEmitter {
             logger: {
                 logLevel: KafkaConfig.LOGGER_LEVEL
             }
-        });
+        }, (isAvailable) => me.emit(isAvailable ? Kafka.AVAILABLE_EVENT : Kafka.NOT_AVAILABLE_EVENT));
 
         me.producer
             .init()
@@ -268,7 +272,7 @@ class Kafka extends EventEmitter {
             if (subscriptionSet) {
                 subscriptionSet.forEach((subscriberId) => {
                     messageSet.forEach((message) => {
-                        me.emit(`message`, subscriberId, topic, message.message.value, partition);
+                        me.emit(Kafka.MESSAGE_EVENT, subscriberId, topic, message.message.value, partition);
                     });
                 });
             }

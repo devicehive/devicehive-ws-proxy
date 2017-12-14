@@ -1,17 +1,17 @@
-const ProxyConfig = require(`../config`).proxy;
+const Config = require(`../config`).proxy;
 const { Message, MessageUtils } = require(`devicehive-proxy-message`);
 const CONST = require(`./constants.json`);
 const Utils = require(`../utils`);
 const WebSocketServer = require(`./WebSocketServer`);
-const MessageBuffer = require(`./MessageBuffer`);
+const MessageBuffer = require(`./messageBuffer/MessageBuffer`);
 const InternalCommunicatorFacade = require(`./InternalCommunicatorFacade`);
 const PluginManager = require(`./PluginManager`);
 const ApplicationLogger = require(`./ApplicationLogger`);
 
-const logger = new ApplicationLogger(CONST.APPLICATION_TAG, ProxyConfig.APP_LOG_LEVEL);
-const messageBuffer = new MessageBuffer(ProxyConfig.MESSAGE_BUFFER.MAX_SIZE_MB);
-const internalCommunicatorFacade = new InternalCommunicatorFacade(ProxyConfig.COMMUNICATOR_TYPE);
-const pluginManager = new PluginManager();
+const logger = new ApplicationLogger(CONST.APPLICATION_TAG, Config.APP_LOG_LEVEL);
+const messageBuffer = new MessageBuffer();
+const pluginManager = new PluginManager(Config.AUTH_SERVICE_ENDPOINT, !Config.ENABLE_PLUGIN_MANGER);
+const internalCommunicatorFacade = new InternalCommunicatorFacade(Config.COMMUNICATOR_TYPE);
 const webSocketServer = new WebSocketServer();
 
 
@@ -29,19 +29,9 @@ webSocketServer.on(WebSocketServer.CLIENT_MESSAGE_EVENT, (clientId, data) => {
         Utils.forEach(messages, (message) => {
             const normalizedMessage = Message.normalize(message);
 
-            if (pluginManager.isEnabled()) {
-                pluginManager.checkConstraints(clientId, normalizedMessage);
-            }
-
+            pluginManager.checkConstraints(clientId, normalizedMessage);
             messageBuffer.push({clientId: clientId, message: normalizedMessage});
-
-            if (ProxyConfig.ACK_ON_EVERY_MESSAGE_ENABLED === true) {
-                webSocketServer.send(clientId, new Message({
-                    id: normalizedMessage.id,
-                    type: MessageUtils.ACK_TYPE,
-                    status: MessageUtils.SUCCESS_STATUS
-                }).toString());
-            }
+            respondWithAcknowledgment(clientId, normalizedMessage);
         });
     } catch (error) {
         logger.warn(`Error on incoming WebSocket message: ${error.message}`);
@@ -52,7 +42,6 @@ webSocketServer.on(WebSocketServer.CLIENT_MESSAGE_EVENT, (clientId, data) => {
 webSocketServer.on(WebSocketServer.CLIENT_DISCONNECT_EVENT, (clientId) => {
     internalCommunicatorFacade.removeSubscriber(clientId);
     pluginManager.removeAuthentication(clientId);
-
     logger.info(`WebSocket client has been disconnected. ID: ${clientId}`);
 });
 
@@ -63,16 +52,14 @@ internalCommunicatorFacade.on(InternalCommunicatorFacade.MESSAGE_EVENT, (clientI
     }).toString());
 });
 
+internalCommunicatorFacade.on(InternalCommunicatorFacade.AVAILABLE_EVENT, () => messageBuffer.startPolling());
+internalCommunicatorFacade.on(InternalCommunicatorFacade.NOT_AVAILABLE_EVENT, () => messageBuffer.stopPolling());
 
-setInterval(() => {
-    if (internalCommunicatorFacade.isAvailable() && messageBuffer.length > 0) {
-        const counter = messageBuffer.length < ProxyConfig.MESSAGE_BUFFER.BUFFER_POLLING_MESSAGE_AMOUNT ?
-            messageBuffer.length : ProxyConfig.MESSAGE_BUFFER.BUFFER_POLLING_MESSAGE_AMOUNT;
-        for (let messageCounter = 0; messageCounter < counter; messageCounter++) {
-            processMessage(messageBuffer.shift());
-        }
+messageBuffer.on(MessageBuffer.POLL_EVENT, () => {
+    if (internalCommunicatorFacade.isAvailable()) {
+        processMessage(messageBuffer.shift());
     }
-}, ProxyConfig.MESSAGE_BUFFER.BUFFER_POLLING_INTERVAL_MS);
+});
 
 
 /**
@@ -336,6 +323,22 @@ function processPluginAuthenticateAction(clientId, message) {
             });
     } else {
         respondWithFailure(clientId, `Payload should consist property "token" to authenticate plugin`, message);
+    }
+}
+
+
+/**
+ * Responde to WebSocket client with acknowledgment
+ * @param clientId
+ * @param message
+ */
+function respondWithAcknowledgment(clientId, message = {}) {
+    if (Config.ACK_ON_EVERY_MESSAGE_ENABLED === true) {
+        webSocketServer.send(clientId, new Message({
+            id: message.id,
+            type: MessageUtils.ACK_TYPE,
+            status: MessageUtils.SUCCESS_STATUS
+        }).toString());
     }
 }
 

@@ -1,6 +1,7 @@
+const Config = require(`../../config`).messageBuffer;
 const FIFO = require(`fifo`);
 const EventEmitter = require(`events`);
-const FullMessageBufferError = require(`../lib/errors/messageBuffer/FullMessageBufferError`);
+const FullMessageBufferError = require(`../../lib/errors/messageBuffer/FullMessageBufferError`);
 const sizeof = require('object-sizeof');
 const debug = require(`debug`)(`messagebuffer`);
 
@@ -10,20 +11,24 @@ const debug = require(`debug`)(`messagebuffer`);
  */
 class MessageBuffer extends EventEmitter {
 
+    static get POLL_EVENT() { return `poll` };
+
     /**
      * Creates new MessageBuffer
-     * @param maxDataSizeMB maximum messages data size in buffer (in MB)
      */
-    constructor(maxDataSizeMB) {
+    constructor() {
         super();
 
         const me = this;
 
         me.fifo = new FIFO();
-        me.maxDataSizeB = me.freeMemory = maxDataSizeMB * 1048576;
+        me.maxDataSizeB = me.freeMemory = Config.MAX_SIZE_MB * 1024 * 1024;
         me.dataSize = 0;
+        me.pollingIntervalHandler = null;
 
-        debug(`Maximum size of message buffer: ${maxDataSizeMB} Mb`);
+        debug(`Maximum size of message buffer: ${Config.MAX_SIZE_MB} Mb`);
+        debug(`Polling interval: ${Config.BUFFER_POLLING_INTERVAL_MS} ms`);
+        debug(`Message amount per polling cycle: ${Config.BUFFER_POLLING_MESSAGE_AMOUNT}`);
     }
 
     /**
@@ -138,6 +143,24 @@ class MessageBuffer extends EventEmitter {
     }
 
     /**
+     * Start buffer polling
+     */
+    startPolling() {
+       const me = this;
+
+       me.__initPollingInterval();
+    }
+
+    /**
+     * Stop buffer polling
+     */
+    stopPolling() {
+        const me = this;
+
+        clearInterval(me.pollingIntervalHandler);
+    }
+
+    /**
      * Increment data size counter
      * @param bytesAmount
      * @private
@@ -181,6 +204,26 @@ class MessageBuffer extends EventEmitter {
         const me = this;
 
         me.freeMemory = me.maxDataSizeB - me.dataSize;
+    }
+
+    /**
+     * Initialize polling interval
+     * @event poll
+     * @private
+     */
+    __initPollingInterval() {
+        const me = this;
+
+        me.pollingIntervalHandler = setInterval(() => {
+            if (me.length > 0) {
+                const counter = me.length < Config.BUFFER_POLLING_MESSAGE_AMOUNT ?
+                    me.length : Config.BUFFER_POLLING_MESSAGE_AMOUNT;
+
+                for (let messageCounter = 0; messageCounter < counter; messageCounter++) {
+                    me.emit(MessageBuffer.POLL_EVENT);
+                }
+            }
+        }, Config.BUFFER_POLLING_INTERVAL_MS);
     }
 }
 

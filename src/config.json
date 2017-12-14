@@ -4,12 +4,7 @@
     "WEB_SOCKET_PING_INTERVAL_S": 30,
     "ACK_ON_EVERY_MESSAGE_ENABLED": false,
     "AUTH_SERVICE_ENDPOINT": "http://localhost:8090/dh/rest",
-    "ENABLE_PLUGIN_MANGER": false,
     "COMMUNICATOR_TYPE": "kafka",
     "APP_LOG_LEVEL": "info",
-    "MESSAGE_BUFFER": {
-        "BUFFER_POLLING_INTERVAL_MS": 50,
-        "BUFFER_POLLING_MESSAGE_AMOUNT": 500,
-        "MAX_SIZE_MB": 128
-    }
+    "ENABLE_PLUGIN_MANGER": false
 }
