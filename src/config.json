@@ -3,7 +3,6 @@
     "WEB_SOCKET_SERVER_PORT": 3000,
     "WEB_SOCKET_PING_INTERVAL_S": 30,
     "ACK_ON_EVERY_MESSAGE_ENABLED": false,
-    "AUTH_SERVICE_ENDPOINT": "http://localhost:8090/dh/rest",
     "COMMUNICATOR_TYPE": "kafka",
     "APP_LOG_LEVEL": "info",
     "ENABLE_PLUGIN_MANGER": false

@@ -5,12 +5,12 @@ const Utils = require(`../utils`);
 const WebSocketServer = require(`./WebSocketServer`);
 const MessageBuffer = require(`./messageBuffer/MessageBuffer`);
 const InternalCommunicatorFacade = require(`./InternalCommunicatorFacade`);
-const PluginManager = require(`./PluginManager`);
+const PluginManager = require(`./pluginManager/PluginManager`);
 const ApplicationLogger = require(`./ApplicationLogger`);
 
 const logger = new ApplicationLogger(CONST.APPLICATION_TAG, Config.APP_LOG_LEVEL);
 const messageBuffer = new MessageBuffer();
-const pluginManager = new PluginManager(Config.AUTH_SERVICE_ENDPOINT, !Config.ENABLE_PLUGIN_MANGER);
+const pluginManager = new PluginManager(!Config.ENABLE_PLUGIN_MANGER);
 const internalCommunicatorFacade = new InternalCommunicatorFacade(Config.COMMUNICATOR_TYPE);
 const webSocketServer = new WebSocketServer();
 

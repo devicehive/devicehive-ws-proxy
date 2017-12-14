@@ -34,7 +34,8 @@ services:
     container_name: internalproxy
     environment:
       KAFKA.KAFKA_HOSTS: "kafka:9092"
-      PROXY.AUTH_SERVICE_ENDPOINT: "http://192.168.160.107:8090/dh/rest"
+      PLUGIN_MANAGER.AUTH_SERVICE_ENDPOINT: "http://192.168.160.107:8090/dh/rest"
+      PLUGIN_MANAGER.PLUGIN_MANAGEMENT_SERVICE_ENDPOINT: "http://192.168.160.107:8110/dh/rest"
       PROXY.WEB_SOCKET_SERVER_HOST: "internalproxy"
       PROXY.ENABLE_PLUGIN_MANGER: "false"
       DEBUG: "kafka,pluginmanager"
@@ -45,7 +46,8 @@ services:
     container_name: externalproxy
     environment:
       KAFKA.KAFKA_HOSTS: "kafka:9092"
-      PROXY.AUTH_SERVICE_ENDPOINT: "http://192.168.160.107:8090/dh/rest"
+      PLUGIN_MANAGER.AUTH_SERVICE_ENDPOINT: "http://192.168.160.107:8090/dh/rest"
+      PLUGIN_MANAGER.PLUGIN_MANAGEMENT_SERVICE_ENDPOINT: "http://192.168.160.107:8110/dh/rest"
       PROXY.WEB_SOCKET_SERVER_HOST: "externalproxy"
       PROXY.ENABLE_PLUGIN_MANGER: "true"
       DEBUG: "kafka,pluginmanager"

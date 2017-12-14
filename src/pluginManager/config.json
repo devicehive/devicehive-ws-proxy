@@ -1,0 +1,4 @@
+{
+    "AUTH_SERVICE_ENDPOINT": "http://localhost:8090/dh/rest",
+    "PLUGIN_MANAGEMENT_SERVICE_ENDPOINT": "http://localhost:8110/dh/rest"
+}
