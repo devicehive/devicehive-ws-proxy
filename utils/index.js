@@ -5,6 +5,7 @@
 class Utils {
 
     static get MS_IN_S() { return 1000; }
+    static get B_IN_MB() { return 1024 * 1024; }
     static get EMPTY_STRING() { return ``; }
 
     /**

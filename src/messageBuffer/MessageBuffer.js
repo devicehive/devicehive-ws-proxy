@@ -1,4 +1,5 @@
 const Config = require(`../../config`).messageBuffer;
+const Utils = require(`../../utils`);
 const FIFO = require(`fifo`);
 const EventEmitter = require(`events`);
 const FullMessageBufferError = require(`../../lib/errors/messageBuffer/FullMessageBufferError`);
@@ -22,7 +23,7 @@ class MessageBuffer extends EventEmitter {
         const me = this;
 
         me.fifo = new FIFO();
-        me.maxDataSizeB = me.freeMemory = Config.MAX_SIZE_MB * 1024 * 1024;
+        me.maxDataSizeB = me.freeMemory = Config.MAX_SIZE_MB * Utils.B_IN_MB;
         me.dataSize = 0;
         me.pollingIntervalHandler = null;
 
