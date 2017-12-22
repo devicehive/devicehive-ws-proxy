@@ -62,6 +62,12 @@ class Utils {
     static isTrue(value) {
         return value === true ? true : (value === `true`);
     }
+
+    static queryBuilder(paramsObject) {
+        return Object.keys(paramsObject).reduce((queryString, key, index) => {
+            return queryString += `${index === 0 ? `` : `&`}${key}=${paramsObject[key]}`
+        }, `?`);
+    }
 }
 
 

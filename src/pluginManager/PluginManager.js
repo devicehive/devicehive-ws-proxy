@@ -1,4 +1,5 @@
 const Config = require(`../../config`).pluginManager;
+const Utils = require(`../../utils`);
 const { MessageUtils, payload } = require(`devicehive-proxy-message`);
 const AuthenticationPluginError = require(`../../lib/errors/plugin/AuthenticationPluginError`);
 const NotAuthorizedPluginError = require(`../../lib/errors/plugin/NotAuthorizedPluginError`);
@@ -17,10 +18,8 @@ const TokenPayload = payload.TokenPayload;
 class PluginManager extends EventEmitter {
 
     static get PLUGIN_ACTIVE_STATUS() { return `ACTIVE`; }
-    static get PLUGIN_INACTIVE_STATUS() { return `INACTIVE`; }
+    static get PLUGIN_DISABLED_STATUS() { return `DISABLED`; }
     static get PLUGIN_AUTHENTICATE_RESOURCE_PATH() { return `/token/plugin/authenticate`; }
-    static get PLUGIN_MANAGEMENT_SERVICE_UPDATE_RESOURCE_PATH() { return ``; } //TODO
-
 
     /**
      * Creates new PluginManager
@@ -31,6 +30,7 @@ class PluginManager extends EventEmitter {
         const me = this;
 
         me.disabled = disabled;
+        me.pluginKeyTokenMap = new Map();
         me.pluginKeyTokenPayloadMap = new Map();
 
         if (me.isEnabled()) {
@@ -63,6 +63,7 @@ class PluginManager extends EventEmitter {
 
                             debug(`Plugin with key: ${pluginKey} has been authenticated`);
 
+                            me.pluginKeyTokenMap.set(pluginKey, token);
                             me.pluginKeyTokenPayloadMap.set(pluginKey, tokenPayload);
                             me.updatePlugin(pluginKey, PluginManager.PLUGIN_ACTIVE_STATUS);
 
@@ -87,14 +88,24 @@ class PluginManager extends EventEmitter {
      */
     updatePlugin(pluginKey, status) {
         const me = this;
+        const tokenPayload = me.pluginKeyTokenPayloadMap.get(pluginKey);
 
-        debug(`Plugin ${pluginKey} has changed it's state to ${status}`);
+        if (tokenPayload) {
+            const queryString = Utils.queryBuilder({
+                status: status,
+                topicName: tokenPayload.topic
+            });
 
-        // TODO
-        // request({
-        //     method: `GET`,
-        //     uri: `${Config.PLUGIN_MANAGEMENT_SERVICE_ENDPOINT}${PluginManager.PLUGIN_MANAGEMENT_SERVICE_UPDATE_RESOURCE_PATH}`
-        // }, (err, response, body) => {});
+            request({
+                method: `PUT`,
+                uri: `${Config.PLUGIN_MANAGEMENT_SERVICE_ENDPOINT}/plugin${queryString}`,
+                headers: {
+                    Authorization: `Bearer ${me.pluginKeyTokenMap.get(pluginKey)}`
+                }
+            }, (error, response, body) => {});
+
+            debug(`Plugin ${pluginKey} has changed it's state to ${status}`);
+        }
     }
 
     /**
@@ -168,8 +179,9 @@ class PluginManager extends EventEmitter {
         const me = this;
 
         if (me.isEnabled()) {
-            me.updatePlugin(pluginKey, PluginManager.PLUGIN_INACTIVE_STATUS);
+            me.updatePlugin(pluginKey, PluginManager.PLUGIN_DISABLED_STATUS);
             me.pluginKeyTokenPayloadMap.delete(pluginKey);
+            me.pluginKeyTokenMap.delete(pluginKey);
         }
     }
 
