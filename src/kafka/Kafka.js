@@ -57,6 +57,8 @@ class Kafka extends EventEmitter {
             }
         }, (isAvailable) => me.emit(isAvailable ? Kafka.AVAILABLE_EVENT : Kafka.NOT_AVAILABLE_EVENT));
 
+        debug(`Started trying connect to server`);
+
         me.producer
             .init()
             .then(() => {

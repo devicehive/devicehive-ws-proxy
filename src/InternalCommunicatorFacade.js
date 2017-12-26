@@ -21,6 +21,8 @@ class InternalCommunicatorFacade extends EventEmitter {
 	static createCommunicator(communicatorType) {
 		let communicator;
 
+        debug(`${communicatorType} used as internal communicator`);
+
 		switch(communicatorType) {
 			case InternalCommunicatorFacade.KAFKA_COMMUNICATOR:
                 communicator =  new Kafka();
@@ -32,8 +34,6 @@ class InternalCommunicatorFacade extends EventEmitter {
                 communicator = InternalCommunicatorFacade(communicatorType);
 				break;
 		}
-
-        debug(`${communicatorType} used as internal communicator`);
 
 		return communicator;
 	}

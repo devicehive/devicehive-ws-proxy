@@ -30,7 +30,16 @@ webSocketServer.on(WebSocketServer.CLIENT_MESSAGE_EVENT, (clientId, data) => {
             const normalizedMessage = Message.normalize(message);
 
             pluginManager.checkConstraints(clientId, normalizedMessage);
-            messageBuffer.push({clientId: clientId, message: normalizedMessage});
+
+            if (normalizedMessage.type === MessageUtils.HEALTH_CHECK_TYPE || message.type === MessageUtils.PLUGIN_TYPE) {
+                processMessage({
+                    clientId: clientId,
+                    message: normalizedMessage
+                });
+            } else {
+                messageBuffer.push({clientId: clientId, message: normalizedMessage});
+            }
+
             respondWithAcknowledgment(clientId, normalizedMessage);
         });
     } catch (error) {
