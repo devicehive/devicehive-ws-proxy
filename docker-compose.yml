@@ -1,96 +1,58 @@
-version: "3"
+version: '3'
 services:
   zookeeper:
     image: wurstmeister/zookeeper
-    ports:
-      - "2181:2181"
-  kafka:
-    image: wurstmeister/kafka
-    ports:
-      - "9092:9092"
-      - "9093:9093"
-      - "9094:9094"
+    restart: unless-stopped
     environment:
-      KAFKA_ADVERTISED_HOST_NAME: ${HOST:-kafka}
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-#      KAFKA_ADVERTISED_PORT: 9092
-      HOSTNAME_COMMAND: ${HOST:-kafka}
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
-      KAFKA_ADVERTISED_PROTOCOL_NAME: OUTSIDE
-      KAFKA_PROTOCOL_NAME: INSIDE
-      KAFKA_ADVERTISED_PORT: 9094
-      KAFKA_NUM_PARTITIONS: ${PARTITIONS_PER_TOPIC:-4}
+      ZOOKEEPER_CLIENT_PORT: 2181
+    networks:
+      - shared
+  kafka:
+    image: wurstmeister/kafka:0.10.2.1
     links:
-      - zookeeper
-  node_1:
-      build: .
-      ports:
-        - "8080:8080"
-      environment:
-        KAFKA_MBR: "${HOST:-kafka}:9094"
-        DEBUG: ${DEBUG}
-        WSS_PORT: ${WSS_PORT:-8080}
-      volumes:
-        - ${CONF_PATH:-./example/configs/}:/usr/src/app/conf:ro
-      links:
-        - kafka
-  node_2:
-      build: .
-      ports:
-        - "8081:8081"
-      environment:
-        KAFKA_MBR: "${HOST:-kafka}:9094"
-        DEBUG: ${DEBUG}
-        WSS_PORT: ${WSS_PORT:-8081}
-      volumes:
-        - ${CONF_PATH:-./example/configs/}:/usr/src/app/conf:ro
-      links:
-        - kafka
-  node_3:
-      build: .
-      ports:
-        - "8082:8082"
-      environment:
-        KAFKA_MBR: "${HOST:-kafka}:9094"
-        DEBUG: ${DEBUG}
-        WSS_PORT: ${WSS_PORT:-8082}
-      volumes:
-        - ${CONF_PATH:-./example/configs/}:/usr/src/app/conf:ro
-      links:
-        - kafka
-  node_4:
-      build: .
-      ports:
-        - "8083:8083"
-      environment:
-        KAFKA_MBR: "${HOST:-kafka}:9094"
-        DEBUG: ${DEBUG}
-        WSS_PORT: ${WSS_PORT:-8083}
-      volumes:
-        - ${CONF_PATH:-./example/configs/}:/usr/src/app/conf:ro
-      links:
-        - kafka
-  node_5:
-      build: .
-      ports:
-        - "8084:8084"
-      environment:
-        KAFKA_MBR: "${HOST:-kafka}:9094"
-        DEBUG: ${DEBUG}
-        WSS_PORT: ${WSS_PORT:-8084}
-      volumes:
-        - ${CONF_PATH:-./example/configs/}:/usr/src/app/conf:ro
-      links:
-        - kafka
-  node_6:
-        build: .
-        ports:
-          - "8090:8090"
-        environment:
-          KAFKA_MBR: "${HOST:-kafka}:9094"
-          DEBUG: ${DEBUG}
-          WSS_PORT: ${WSS_PORT:-8090}
-        volumes:
-          - ${CONF_PATH:-./example/configs/}:/usr/src/app/conf:ro
-        links:
-          - kafka
+      - "zookeeper"
+    restart: unless-stopped
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    networks:
+      - shared
+  proxynginx:
+    build: ./nginx
+    container_name: proxynginx
+    links:
+      - internalproxy:internalproxy
+      - externalproxy:externalproxy
+    networks:
+      - shared
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+  internalproxy:
+    build: .
+    container_name: internalproxy
+    environment:
+      KAFKA.KAFKA_HOSTS: "kafka:9092"
+      PLUGIN_MANAGER.AUTH_SERVICE_ENDPOINT: "http://192.168.160.107:8090/dh/rest"
+      PLUGIN_MANAGER.PLUGIN_MANAGEMENT_SERVICE_ENDPOINT: "http://192.168.160.107:8110/dh/rest"
+      PROXY.WEB_SOCKET_SERVER_HOST: "internalproxy"
+      PROXY.ENABLE_PLUGIN_MANGER: "false"
+      DEBUG: "kafka,pluginmanager"
+    networks:
+      - shared
+  externalproxy:
+    build: .
+    container_name: externalproxy
+    environment:
+      KAFKA.KAFKA_HOSTS: "kafka:9092"
+      PLUGIN_MANAGER.AUTH_SERVICE_ENDPOINT: "http://192.168.160.107:8090/dh/rest"
+      PLUGIN_MANAGER.PLUGIN_MANAGEMENT_SERVICE_ENDPOINT: "http://192.168.160.107:8110/dh/rest"
+      PROXY.WEB_SOCKET_SERVER_HOST: "externalproxy"
+      PROXY.ENABLE_PLUGIN_MANGER: "true"
+      DEBUG: "kafka,pluginmanager"
+    networks:
+      - shared
+networks:
+  shared:
+    driver: bridge

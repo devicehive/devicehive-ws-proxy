@@ -1,265 +1,349 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-# WebSocket proxy to Kafka
-The project wrap some of the essential kafka functionality 
-allowing you to communicate with Kafka through WebSockets.
-WebSocket implements JSON based message protocol and have the following features:
- - Topics
-    - Create
-    - List
-    - Subscribe (incl. consumer groups)
-    - Un-subscribe
- - Push messages to topics
- 
-This project is based on [SOHU-Co/kafka-node](https://github.com/SOHU-Co/kafka-node) 
-and [WebSockets](https://github.com/websockets/ws)
+# WebSocket proxy to message broker
+The project wrap some of the essential message broker functionality 
+allowing you to communicate with the next message brokers through WebSockets:
+
+- Kafka
 
 
-# Checkout and Build
-```
-git clone https://github.com/devicehive/devicehive-ws-kafka-proxy.git
-cd devicehive-ws-kafka-proxy
-docker-compose up -d --build
-```
+# Configuration
+## Proxy
+    [path-to-proxy-project]/src/config.json    
 
-After running these commands, docker starts all images (Kafka, ZK, Proxy), 
-you will have 3 instances websocket-kafka proxies available on 8080, 8081, 8082 ports. 
+- **_WEB_SOCKET_SERVER_HOST_** - WebSocket server host address (default: "localhost");  
+- **_WEB_SOCKET_SERVER_PORT_** - WebSocket server port to listen (default: 3000);  
+- **_WEB_SOCKET_PING_INTERVAL_S_** - Time interval in seconds between ping messages (default: 30);  
+- **_ACK_ON_EVERY_MESSAGE_ENABLED_** - Enable/disable acknowledgment for every received message (default: false);  
+- **_ENABLE_PLUGIN_MANGER_** - Enable plugin manager (default: false);  
+- **_COMMUNICATOR_TYPE_** - Message broker that will be used internally (default: "kafka");  
+- **_APP_LOG_LEVEL_** - Proxy logger level: debug, info, warn, error (default: "info");  
 
-# Launch Locally
-You can launch kafka proxy locally. You will need Kafka and ZK running.
+Each configuration field can be overridden with corresponding environmental variable with "PROXY" prefix, for example:
 
-```javascript
-const WSKafka = require('../ws-kafka').WSKafkaProxy,
-        debug = require('debug')('ws-kafka:test');
+    PROXY.WEB_SOCKET_SERVER_PORT=6000
+    
+### Message Buffer configuration
+    [path-to-proxy-project]/src/messageBuffer/config.json    
 
+- **_BUFFER_POLLING_INTERVAL_MS_** - Message buffer polling interval in ms (default: 50);  
+- **_BUFFER_POLLING_MESSAGE_AMOUNT_** - Amount of messages that will be shifted from message buffer on each buffer polling (default: 500);  
+- **_MAX_SIZE_MB_** - Maximum Message Buffer size in MB (default: 128);  
 
-conf_module.clientConfig = {
-        //node-kafka options
-        kafkaHost: getBrokerList(),
-        clientId: 'test-kafka-client-2',
-        connectTimeout: 1000,
-        requestTimeout: 60000,
-        autoConnect: true,
-        //custom options
-        no_zookeeper_client: true
-    };
+Each configuration field can be overridden with corresponding environmental variable with "MESSAGE_BUFFER" prefix, for example:
 
-    conf_module.webSocketConfig ={
-        port: getWebSocketPort()
-    };
+    MESSAGE_BUFFER.BUFFER_POLLING_INTERVAL_MS=60
+    
+### Plugin Manager configuration
+    [path-to-proxy-project]/src/pluginManager/config.json 
 
-    conf_module.producerConfig = {
-        requireAcks: 1,
-        ackTimeoutMs: 100,
-        partitionerType: 2,
-        // custom options
-        mq_limit: 20000,
-        mq_interval: 200 //if null, then messages published immediately
-    };
+- **_AUTH_SERVICE_ENDPOINT_** - DeviceHive auth service REST endpoint (default: http://localhost:8090/dh/rest);  
+- **_PLUGIN_MANAGEMENT_SERVICE_ENDPOINT_** - DeviceHive plugin management service REST endpoint (default: http://localhost:8110/dh/rest);
+    
+Each configuration field can be overridden with corresponding environmental variable with "PLUGIN_MANAGER" prefix, for example:
 
-    conf_module.consumerConfig ={
-        // host: 'zookeeper:2181',  // zookeeper host omit if connecting directly to broker (see kafkaHost below)
-        kafkaHost: getBrokerList(),
-        ssl: true, // optional (defaults to false) or tls options hash
-        groupId: 'kafka-node-group', //should be set by message to ws
-        autoCommit: true,
-        autoCommitIntervalMs: 500,
-        // Fetch message config
-        fetchMaxWaitMs: 100,
-        paused: false,
-        maxNumSegments: 1000,
-        fetchMinBytes: 1,
-        fetchMaxBytes: 1024 * 1024,
-        maxTickMessages: 1000,
-        fromOffset: 'latest',
-        outOfRangeOffset: 'earliest',
-        sessionTimeout: 30000,
-        retries: 10,
-        retryFactor: 1.8,
-        retryMinTimeout: 1000,
-        connectOnReady: true,
-        migrateHLC: false,
-        migrateRolling: true,
-        protocol: ['roundrobin'],
-        // custom options
-        mq_limit: 5000,
-        mq_interval: 50 //if null, then messages published immediately
-    };
+    PLUGIN_MANAGER.AUTH_SERVICE_ENDPOINT=http://localhost:9090/dh/rest
 
-    conf_module.brokerType = `kafka`;
+## Message Brokers
+### Kafka
+    [path-to-proxy-project]/src/kafka/config.json   
+    
+- **_KAFKA_HOSTS_** - Address to Kafka server (default: "localhost:9092");  
+- **_KAFKA_CLIENT_ID_** - Kafka client name prefix (default: "ws-proxy-kafka-client");  
+- **_CONSUMER_GROUP_ID_** - Kafka consumer group prefix (default: "ws-proxy-consumer-group");  
+- **_LOGGER_LEVEL_** Kafka logger level (default: 0);  
+    
+Each configuration field can be overridden with corresponding environmental variable with "KAFKA" prefix, for example:
 
-const wsk = new WSKafka(conf_module);
+    KAFKA.KAFKA_HOSTS=localhost:9094
 
-wsk.on('ws-connection', (ws, req) => debug('connection'))
-    .on('ws-close', () => debug('ws-close'))
-    .on('wss-ready', () => debug('wss-ready'))
-    .on('producer-ready', () => debug('producer-ready'))
-    .on('producer-error', (e) => console.log(`producer-error ${e}`))
-    .on('consumer-ready', () => debug('consumer-ready'))
-    .on('consumer-error', (e) => console.log(`consumer-error ${e}`))
-    .on('consumer-message', () => {})
-    .on('error', (e) => console.log(`error ${e}`));
+## Proxy modules logging
+Through the "DEBUG" environment variable you are able to specify next modules loggers:
 
-wsk.start();
+- **_websocketserver_** - WebSocket Server module logging; 
+- **_internalcommunicatorfacade_** - Facade between WebSocket server and internal message broker module logging; 
+- **_pluginmanager_** - Plugin Manager module logging; 
+- **_messagebuffer_** - Message Buffer module logging; 
+- **_kafka_** - Kafka Client module logging; 
 
-```
+Example:
 
-Each WebSocket connection to the proxy may have one Kafka producer and one consumer. 
-The producer is initialized with each WebSocket connection. The consumer is initialized after subscription message received.   
+    DEBUG=kafka,messagebuffer,websocketserver    
+    
+# Start the proxy
 
-## Notes on configuration
-producer_config and consumer_config objects both have two custom options 
-`mq_limit: 5000` specifies the maximum message number to be stored in the buffer before sending them. 
-`mq_interval: 50` specifies the number in ms how often should message from the buffer be sent to Kafka brokers or the WebSocket.  
+    - node ./src/proxy.js
+
 
 # Message Structure
 ## General
 All messages are `JSON` based. Generic message structure looks like this:
-```json
+```
 {
-  "id":"id or original message",
-  "t":"message type",
-  "a":"action",
-  "s":"success",
-  "p":"payload"
+  "id": "id of original message",
+  "t": "message type",
+  "a": "action",
+  "s": "success",
+  "p": "payload"
 }
 ```
 
-| Param | Type | Description |
-| --- | --- | --- |
-| id | `String or Int` | Original Message Id |
-| t | `String` | Type: ["topic","notif","health"] |
-| a | `String` | Action: ["create","list","subscribe","unsubscribe", "ack"]|
-| s | `Int` | Status, returned by the server, 0 if OK. |
-| p | `String` | Custom payload |
+| Param | Type            | Description |
+| ---   | ---             | --- |
+| id    | `String or Int` | Original Message Id |
+| t     | `String`        | Type: ["topic","notif","health","plugin"] |
+| a     | `String`        | Action: ["create","list","subscribe","unsubscribe","authenticate" "ack"]|
+| s     | `Int`           | Status, returned by the server, 0 if OK. |
+| p     | `Object`        | Payload object |
 
-Server can receive an list of messages in one batch.
+Server can receive a list of messages in one batch.
 
-`NOTE:` You will get ack message on any message you send to Proxy. This means that Proxy has received message, will process and push it to Kafka.
-
-Ack message:
-```json
+### Ack message:
+Success ACK:
+```
 {
-  "id" : 1, 
-  "t" : "ack",
-  "s" : 0,
-  "p" : {}
+    "t": "ack",
+    "s": 0
 }
 ```
 
-In case of errors you will have error message in `"p"` field and `"s" : 1`
+Failure ACK:
+```
+{
+    "t": "ack",
+    "s": 1,
+    "p": { "m": <error message> }
+}
+```
 
 ## Topics
 ### Create
-```json
+Request message:
+```
 {
-  "id":1, 
-  "t":"topic",
-  "a":"create", 
-  "p":["topic1", "topic2", "topicN"]
+    "t": "topic",
+    "a": "create", 
+    "p": { "t": ["topic1", "topic2", "topicN"] }
 }
 ```
-`NOTE:` kafka-node does not support configuration of number of partitions per particular topic.
-You can only use Kafka broker setting for now `KAFKA_NUM_PARTITIONS` in docker or `num.partitions` in Kafka config. 
 
 Response message:
+```
+{
+    "t": "topic",
+    "a": "create",
+    "p": { "t": ["topic1", "topic2", "topicN"] },
+    "s": 0 
+}
+```
 
-```json
-{"id":1, "t":"topic","a":"create","s":0,"p":["topic1","topic2","topicN"]}
+Error message:
+```
+{
+    "t": "topic",
+    "a": "create",
+    "p": { "m": <error message> },
+    "s": 1 
+}
 ```
 
 #### List
-```json
+Request message:
+```
 {
-  "id":23, 
-  "t":"topic",
-  "a":"list"
+    "t": "topic",
+    "a": "list"
 }
 ```
-Response message:
 
-```json
-{
-  "id":23,
-  "t":"topic",
-  "a":"list",
-  "s":0,
-  "p":
-  [{"topic":"topic2","partition":0},{"topic":"topic2","partition":1},{"topic":"topic2","partition":2},{"topic":"topic1","partition":0},{"topic":"topic1","partition":1},{"topic":"topic1","partition":2},{"topic":"topicN","partition":0},{"topic":"topicN","partition":1},{"topic":"topicN","partition":2}]}
+Response message:
 ```
-Payload is the list of topic-partitions structures.
+{
+    "t": "topic",
+    "a": "list",
+    "p": { "t": ["topic1", "topic2", "topicN"] },
+    "s": 0
+}
+```
+
+Error message:
+```
+{
+    "t": "topic",
+    "a": "list",
+    "p": { "m": <error message> },
+    "s": 1 
+}
+```
 
 ### Subscribe
-Subscribe to topic and join consumer group
-```json
+Request message:
+```
 {
-    "id":1000,
-    "t":"topic",
-    "a":"subscribe",
-    "p":
-      {
-        "t":["topic1","topic2"],
-        "consumer_group":"ingestion_1",
-        "customConsumerConfig" : {}
-      }
+    "t": "topic",
+    "a": "subscribe",
+    "p": { "t": ["topic1", "topic2"] }
 }
 ```
 
-Payload is the structure of `t` - list of topics and `consumer_group` to join. 
-if `consumer_group` is not specified then default `groupId` from `conf_module.consumer_config`
-will be used.
-You could also specify your own consumer config or just change some of default config fields by passing object in `customConsumerConfig` field.
-
 Response message:
-```json
-{"id":1000,"t":"topic","a":"subscribe","p":["topic1","topic2"],"s":0}
+```
+{
+    "t": "topic",
+    "a": "subscribe",
+    "p": { "t": ["topic1", "topic2"] },
+    "s": 0
+}
 ```
 
-All notifications from Kafka will be sent to the same WebSocket connection where the subscription was made.  
+Error message:
+```
+{
+    "t": "topic",
+    "a": "subscribe",
+    "p": { "m": <error message> },
+    "s": 1 
+}
+```
 
 ### Unsubscribe
-Unsubscribe from topics and consumer group
-```json
+Request message:
+```
 {
-    "id":1300,
-    "t":"topic",
-    "a":"unsubscribe"
+    "t": "topic",
+    "a": "unsubscribe",
+    "p": { "t": ["topic1", "topic2"] }
 }
 ```
 
 Response message:
-```json
-{"id":1300,"t":"topic","a":"unsubscribe","s":0}
+```
+{
+    "t": "topic",
+    "a": "unsubscribe",
+    "p": { "t": ["topic1", "topic2"] },
+    "s": 0
+}
+```
+
+Error message:
+```
+{
+    "t": "topic",
+    "a": "unsubscribe",
+    "p": { "m": <error message> },
+    "s": 1 
+}
+```
+
+## Plugin
+### Authenticate
+Request message:
+```
+{
+    "t": "plugin",
+    "a": "authenticate",
+    "p": { "token": <plugin access token> }
+}
+```
+
+Response message:
+```
+{
+    "t": "plugin", 
+    "a": "authenticate",
+    "p": {
+        "tpc": <plugin topic name>,
+        "e": <plugin access token expiration date>,
+        "t": 1 
+    },
+    "s": 0
+}
+```
+Where:
+
+**_tpc_** - plugin topic name  
+**_e_** - plugin access token expiration date  
+**_t_** - plugin token type (0 - refresh token, 1 - access token)  
+
+Error message:
+```
+{
+    "t": "plugin",
+    "a": "authenticate",
+    "p": { "m": <error message> },
+    "s": 1 
+}
 ```
 
 ## Notification
 ### Send
-```json
-{"id":1320,"t":"notif","a":"create","p":{"t":"topic1", "m":"{custom_message:'msg'}", "part" : 1}}
+Request message:
 ```
-Response message:
-
-```json
-{"id" : 1320, "t" : "notif", "a" : "create", "s" : 0, "p":{}}
-```
-
-### Receive
-Notifications are received automatically after subscription.
-```json
-[{"id":1320,"t":"notif","p":"hello"}]
-```
-A list of notifications with the payload which was sent using send notification message.
-
-## Healthcheck
-```json
 {
-    "id":1500,
-    "t":"health"
+    "t": "notif",
+    "a": "create",
+    "p": {
+        "t": "topic1", 
+        "m": <notification message srting>, 
+        "part": 1
+    }
 }
 ```
 
 Response message:
-```json
-{"id":1500,"t":"health","s":0,"p":{"status": "available|failed"}}
 ```
-Payload contains current status of Kafka broker.
+{
+    "t": "notif", 
+    "a": "create",
+    "s": 0
+}
+```
+
+Error message:
+```
+{
+    "t": "notif",
+    "a": "create",
+    "p": { "m": <error message> },
+    "s": 1 
+}
+```
+
+### Receive
+Notifications are received automatically after subscription.
+Notification message
+```
+{
+    "t": "notif",
+    "p": { "m": <notification message string> }
+}
+```
+
+## Healthcheck
+Request message
+```
+{
+    "t": "health"
+}
+```
+
+Response message:
+```
+{
+    "t": "health",
+    "s": 0,
+    "p": {
+        "prx": "Available|Not Available",
+        "mb": "Available|Not Available",
+        "mbfp": <0-100>,
+        "comm": "Available|Not Available"
+    }
+}
+```
+Where:
+
+ **_prx_** - Proxy Status  
+ **_mb_** - Message buffer status  
+ **_mbfp_** - Message Buffer fill percentage  
+ **_comm_** - Internal message broker status  

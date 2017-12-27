@@ -1,4 +1,4 @@
-FROM node:8.8.1-alpine
+FROM node:9.2.0-alpine
 
 MAINTAINER devicehive
 
@@ -24,7 +24,8 @@ RUN apk update \
     && npm cache clean --force \
     && apk del .gyp
 
+RUN npm install pm2 -g
 
 EXPOSE 3000
 VOLUME ["/usr/src/app/conf"]
-CMD ["node", "example/wskafka-server.js"]
+CMD ["pm2-docker", "src/proxy.js"]
