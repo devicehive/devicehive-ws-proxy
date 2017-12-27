@@ -5,7 +5,7 @@
     "scripts": {
         "start": "node ./src/proxy.js"
     },
-    "author": "",
+    "author": "Ihor T.",
     "main": "./src/proxy.js",
     "repository": {
         "type": "git",
