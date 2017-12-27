@@ -1,13 +1,17 @@
 {
     "name": "devicehive-ws-kafka-proxy",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "description": "WebSocket to message broker proxy",
     "scripts": {
         "start": "node ./src/proxy.js"
     },
     "author": "",
     "main": "./src/proxy.js",
-    "license": "Apache 2.0",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/devicehive/devicehive-ws-proxy.git"
+    },
+    "license": "Apache-2.0",
     "dependencies": {
         "bluebird": "^3.5.1",
         "debug": "^2.6.9",
