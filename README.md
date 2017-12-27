@@ -30,7 +30,7 @@ Each configuration field can be overridden with corresponding environmental vari
 - **_BUFFER_POLLING_MESSAGE_AMOUNT_** - Amount of messages that will be shifted from message buffer on each buffer polling (default: 500);  
 - **_MAX_SIZE_MB_** - Maximum Message Buffer size in MB (default: 128);  
 
-Each configuration field can be overridden with corresponding environmental variable with "PROXY" prefix, for example:
+Each configuration field can be overridden with corresponding environmental variable with "MESSAGE_BUFFER" prefix, for example:
 
     MESSAGE_BUFFER.BUFFER_POLLING_INTERVAL_MS=60
     
@@ -40,7 +40,7 @@ Each configuration field can be overridden with corresponding environmental vari
 - **_AUTH_SERVICE_ENDPOINT_** - DeviceHive auth service REST endpoint (default: http://localhost:8090/dh/rest);  
 - **_PLUGIN_MANAGEMENT_SERVICE_ENDPOINT_** - DeviceHive plugin management service REST endpoint (default: http://localhost:8110/dh/rest);
     
-Each configuration field can be overridden with corresponding environmental variable with "PROXY" prefix, for example:
+Each configuration field can be overridden with corresponding environmental variable with "PLUGIN_MANAGER" prefix, for example:
 
     PLUGIN_MANAGER.AUTH_SERVICE_ENDPOINT=http://localhost:9090/dh/rest
 
