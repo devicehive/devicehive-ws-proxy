@@ -96,7 +96,7 @@ All messages are `JSON` based. Generic message structure looks like this:
 | s     | `Int`           | Status, returned by the server, 0 if OK. |
 | p     | `Object`        | Payload object |
 
-Server can receive an list of messages in one batch.
+Server can receive a list of messages in one batch.
 
 ### Ack message:
 Success ACK:
