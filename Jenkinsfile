@@ -8,11 +8,11 @@ node('docker') {
   stage('Build and publish Docker images in CI repository') {
     checkout scm
     echo 'Building image ...'
-    def DevicehiveWsKafkaProxy = docker.build('devicehiveci/devicehive-ws-kafka-proxy:${BRANCH_NAME}', '-f Dockerfile .')
+    def DevicehiveWsProxy = docker.build('devicehiveci/devicehive-ws-proxy:${BRANCH_NAME}', '-f Dockerfile .')
 
     echo 'Pushin image to CI repository ...'
     docker.withRegistry('https://registry.hub.docker.com', 'devicehiveci_dockerhub'){
-      DevicehiveWsKafkaProxy.push()
+      DevicehiveWsProxy.push()
     }
   }
 }
@@ -25,8 +25,8 @@ if (publishable_branches.contains(env.BRANCH_NAME)) {
 
       docker.withRegistry('https://registry.hub.docker.com', 'devicehiveci_dockerhub'){
         sh """
-          docker tag devicehiveci/devicehive-ws-kafka-proxy:${BRANCH_NAME} registry.hub.docker.com/devicehive/devicehive-ws-kafka-proxy:${IMAGE_TAG}
-          docker push registry.hub.docker.com/devicehive/devicehive-ws-kafka-proxy:${IMAGE_TAG}
+          docker tag devicehiveci/devicehive-ws-proxy:${BRANCH_NAME} registry.hub.docker.com/devicehive/devicehive-ws-proxy:${IMAGE_TAG}
+          docker push registry.hub.docker.com/devicehive/devicehive-ws-proxy:${IMAGE_TAG}
         """
       }
     }
