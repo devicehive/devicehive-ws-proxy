@@ -113,6 +113,10 @@ class WebSocketServer extends EventEmitter {
 
         ws.on(`pong`, () => {
             ws.isAlive = true;
+        });
+
+        ws.on(`error`, (error) => {
+            debug(`WebSocket client (${clientId}) error: ${error}`);
 		});
 	}
 

@@ -57,6 +57,7 @@ webSocketServer.on(WebSocketServer.CLIENT_DISCONNECT_EVENT, (clientId) => {
 internalCommunicatorFacade.on(InternalCommunicatorFacade.MESSAGE_EVENT, (clientId, topic, payload) => {
     webSocketServer.send(clientId, new Message({
         type: MessageUtils.NOTIFICATION_TYPE,
+        status: MessageUtils.SUCCESS_STATUS,
         payload: { message: payload.toString() }
     }).toString());
 });
@@ -379,11 +380,9 @@ function initProcessExitHandlers() {
 
     function exitHandler(error) {
         if (error) {
-            logger.err(`Process exited with error: ${error.message}`);
+            logger.err(`Process error: ${error.message}`);
             logger.err(error.stack);
         }
-
-        process.exit();
     }
 
     process.on('exit', exitHandler);
