@@ -60,11 +60,11 @@ Each configuration field can be overridden with corresponding environmental vari
 ## Proxy modules logging
 Through the "DEBUG" environment variable you are able to specify next modules loggers:
 
-- websocketserver - WebSocket Server module logging; 
-- internalcommunicatorfacade - Facade between WebSocket server and internal message broker module logging; 
-- pluginmanager - Plugin Manager module logging; 
-- messagebuffer - Message Buffer module logging; 
-- kafka - Kafka Client module logging; 
+- **_websocketserver_** - WebSocket Server module logging; 
+- **_internalcommunicatorfacade_** - Facade between WebSocket server and internal message broker module logging; 
+- **_pluginmanager_** - Plugin Manager module logging; 
+- **_messagebuffer_** - Message Buffer module logging; 
+- **_kafka_** - Kafka Client module logging; 
 
 Example:
 
