@@ -28,6 +28,19 @@ Each configuration field can be overridden with corresponding environmental vari
 
     PROXY.WEB_SOCKET_SERVER_PORT=6000
 
+###Proxy modules logging
+Through the "DEBUG" environmental variable you are able to specify next modules loggers:
+
+- websocketserver - WebSocket Server module logging; 
+- internalcommunicatorfacade - Facade between WebSocket server and internal message broker module logging; 
+- pluginmanager - Plugin Manager module logging; 
+- messagebuffer - Message Buffer module logging; 
+- kafka - Kafka Client module logging; 
+
+Example:
+
+    DEBUG=kafka,messagebuffer,websocketserver
+
 ## Message Brokers
 ### Kafka
     [path-to-proxy-project]/src/kafka/config.json   
@@ -83,7 +96,7 @@ Failure ACK:
 {
     "t" : "ack",
     "s" : 1,
-    "p" : { "m": [errorMessage] }
+    "p" : { "m": [error message] }
 }
 ```
 
@@ -113,7 +126,7 @@ Error message:
 {
     "t": "topic",
     "a": "create",
-    "p": { "m": [errorMessage] },
+    "p": { "m": [error message] },
     "s": 1 
 }
 ```
@@ -142,7 +155,7 @@ Error message:
 {
     "t": "topic",
     "a": "list",
-    "p": { "m": [errorMessage] },
+    "p": { "m": [error message] },
     "s": 1 
 }
 ```
@@ -172,7 +185,7 @@ Error message:
 {
     "t": "topic",
     "a": "subscribe",
-    "p": { "m": [errorMessage] },
+    "p": { "m": [error message] },
     "s": 1 
 }
 ```
@@ -202,7 +215,7 @@ Error message:
 {
     "t": "topic",
     "a": "unsubscribe",
-    "p": { "m": [errorMessage] },
+    "p": { "m": [error message] },
     "s": 1 
 }
 ```
@@ -214,7 +227,7 @@ Request message:
 {
     "t": "plugin",
     "a": "authenticate",
-    "p": { "token": [pluginAccessToken] }
+    "p": { "token": [plugin access token] }
 }
 ```
 
@@ -224,8 +237,8 @@ Response message:
     "t": "plugin", 
     "a": "authenticate",
     "p": {
-        "tpc": [pluginTopicName],
-        "e": [pluginAccessTokenExpirationDate],
+        "tpc": [plugin topic name],
+        "e": [plugin access token expiration date],
         "t": 1 
     },
     "s": 0
@@ -242,7 +255,7 @@ Error message:
 {
     "t": "plugin",
     "a": "authenticate",
-    "p": { "m": [errorMessage] },
+    "p": { "m": [error message] },
     "s": 1 
 }
 ```
@@ -256,7 +269,7 @@ Request message:
     "a": "create",
     "p": {
         "t": "topic1", 
-        "m": [notificationMessageSrting], 
+        "m": [notification message srting], 
         "part": 1
     }
 }
@@ -276,7 +289,7 @@ Error message:
 {
     "t": "notif",
     "a": "create",
-    "p": { "m": [errorMessage] },
+    "p": { "m": [error message] },
     "s": 1 
 }
 ```
@@ -287,7 +300,7 @@ Notification message
 ```
 {
     "t": "notif",
-    "p": { "m": [notificationMessageString] }
+    "p": { "m": [notification message string] }
 }
 ```
 
