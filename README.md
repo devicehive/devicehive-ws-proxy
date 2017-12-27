@@ -24,6 +24,8 @@ Each configuration field can be overridden with corresponding environmental vari
     PROXY.WEB_SOCKET_SERVER_PORT=6000
     
 ### Message Buffer configuration
+    [path-to-proxy-project]/src/messageBuffer/config.json    
+
 - **_BUFFER_POLLING_INTERVAL_MS_** - Message buffer polling interval in ms (default: 50);  
 - **_BUFFER_POLLING_MESSAGE_AMOUNT_** - Amount of messages that will be shifted from message buffer on each buffer polling (default: 500);  
 - **_MAX_SIZE_MB_** - Maximum Message Buffer size in MB (default: 128);  
@@ -33,6 +35,8 @@ Each configuration field can be overridden with corresponding environmental vari
     MESSAGE_BUFFER.BUFFER_POLLING_INTERVAL_MS=60
     
 ### Plugin Manager configuration
+    [path-to-proxy-project]/src/pluginManager/config.json 
+
 - **_AUTH_SERVICE_ENDPOINT_** - DeviceHive auth service REST endpoint (default: http://localhost:8090/dh/rest);  
 - **_PLUGIN_MANAGEMENT_SERVICE_ENDPOINT_** - DeviceHive plugin management service REST endpoint (default: http://localhost:8110/dh/rest);
     
