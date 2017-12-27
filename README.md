@@ -29,7 +29,7 @@ Each configuration field can be overridden with corresponding environmental vari
     PROXY.WEB_SOCKET_SERVER_PORT=6000
 
 ### Proxy modules logging
-Through the "DEBUG" environmental variable you are able to specify next modules loggers:
+Through the "DEBUG" environment variable you are able to specify next modules loggers:
 
 - websocketserver - WebSocket Server module logging; 
 - internalcommunicatorfacade - Facade between WebSocket server and internal message broker module logging; 
