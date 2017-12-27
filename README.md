@@ -15,31 +15,30 @@ allowing you to communicate with the next message brokers through WebSockets:
 - **_WEB_SOCKET_SERVER_PORT_** - WebSocket server port to listen (default: 3000);  
 - **_WEB_SOCKET_PING_INTERVAL_S_** - Time interval in seconds between ping messages (default: 30);  
 - **_ACK_ON_EVERY_MESSAGE_ENABLED_** - Enable/disable acknowledgment for every received message (default: false);  
-- **_AUTH_SERVICE_ENDPOINT_** - DeviceHive Auth REST service address (default: "http://localhost:8090/dh/rest");  
 - **_ENABLE_PLUGIN_MANGER_** - Enable plugin manager (default: false);  
 - **_COMMUNICATOR_TYPE_** - Message broker that will be used internally (default: "kafka");  
 - **_APP_LOG_LEVEL_** - Proxy logger level: debug, info, warn, error (default: "info");  
-- **_MESSAGE_BUFFER:_**  
-    - **_BUFFER_POLLING_INTERVAL_MS_** - Message buffer polling interval in ms (default: 50);  
-    - **_BUFFER_POLLING_MESSAGE_AMOUNT_** - Amount of messages that will be shifted from message buffer on each buffer polling (default: 500);  
-    - **_MAX_SIZE_MB_** - Maximum Message Buffer size in MB (default: 128);  
 
 Each configuration field can be overridden with corresponding environmental variable with "PROXY" prefix, for example:
 
     PROXY.WEB_SOCKET_SERVER_PORT=6000
+    
+### Message Buffer configuration
+- **_BUFFER_POLLING_INTERVAL_MS_** - Message buffer polling interval in ms (default: 50);  
+- **_BUFFER_POLLING_MESSAGE_AMOUNT_** - Amount of messages that will be shifted from message buffer on each buffer polling (default: 500);  
+- **_MAX_SIZE_MB_** - Maximum Message Buffer size in MB (default: 128);  
 
-### Proxy modules logging
-Through the "DEBUG" environment variable you are able to specify next modules loggers:
+Each configuration field can be overridden with corresponding environmental variable with "PROXY" prefix, for example:
 
-- websocketserver - WebSocket Server module logging; 
-- internalcommunicatorfacade - Facade between WebSocket server and internal message broker module logging; 
-- pluginmanager - Plugin Manager module logging; 
-- messagebuffer - Message Buffer module logging; 
-- kafka - Kafka Client module logging; 
+    MESSAGE_BUFFER.BUFFER_POLLING_INTERVAL_MS=60
+    
+### Plugin Manager configuration
+- **_AUTH_SERVICE_ENDPOINT_** - DeviceHive auth service REST endpoint (default: http://localhost:8090/dh/rest);  
+- **_PLUGIN_MANAGEMENT_SERVICE_ENDPOINT_** - DeviceHive plugin management service REST endpoint (default: http://localhost:8110/dh/rest);
+    
+Each configuration field can be overridden with corresponding environmental variable with "PROXY" prefix, for example:
 
-Example:
-
-    DEBUG=kafka,messagebuffer,websocketserver
+    PLUGIN_MANAGER.AUTH_SERVICE_ENDPOINT=http://localhost:9090/dh/rest
 
 ## Message Brokers
 ### Kafka
@@ -53,6 +52,19 @@ Example:
 Each configuration field can be overridden with corresponding environmental variable with "KAFKA" prefix, for example:
 
     KAFKA.KAFKA_HOSTS=localhost:9094
+
+## Proxy modules logging
+Through the "DEBUG" environment variable you are able to specify next modules loggers:
+
+- websocketserver - WebSocket Server module logging; 
+- internalcommunicatorfacade - Facade between WebSocket server and internal message broker module logging; 
+- pluginmanager - Plugin Manager module logging; 
+- messagebuffer - Message Buffer module logging; 
+- kafka - Kafka Client module logging; 
+
+Example:
+
+    DEBUG=kafka,messagebuffer,websocketserver    
     
 # Start the proxy
 
@@ -64,11 +76,11 @@ Each configuration field can be overridden with corresponding environmental vari
 All messages are `JSON` based. Generic message structure looks like this:
 ```
 {
-  "id":"id of original message",
-  "t":"message type",
-  "a":"action",
-  "s":"success",
-  "p":"payload"
+  "id": "id of original message",
+  "t": "message type",
+  "a": "action",
+  "s": "success",
+  "p": "payload"
 }
 ```
 
@@ -86,17 +98,17 @@ Server can receive an list of messages in one batch.
 Success ACK:
 ```
 {
-    "t" : "ack",
-    "s" : 0
+    "t": "ack",
+    "s": 0
 }
 ```
 
 Failure ACK:
 ```
 {
-    "t" : "ack",
-    "s" : 1,
-    "p" : { "m": [error message] }
+    "t": "ack",
+    "s": 1,
+    "p": { "m": <error message> }
 }
 ```
 
@@ -116,7 +128,7 @@ Response message:
 {
     "t": "topic",
     "a": "create",
-    "p": { "t": ["topic1","topic2","topicN"] },
+    "p": { "t": ["topic1", "topic2", "topicN"] },
     "s": 0 
 }
 ```
@@ -126,7 +138,7 @@ Error message:
 {
     "t": "topic",
     "a": "create",
-    "p": { "m": [error message] },
+    "p": { "m": <error message> },
     "s": 1 
 }
 ```
@@ -155,7 +167,7 @@ Error message:
 {
     "t": "topic",
     "a": "list",
-    "p": { "m": [error message] },
+    "p": { "m": <error message> },
     "s": 1 
 }
 ```
@@ -166,7 +178,7 @@ Request message:
 {
     "t": "topic",
     "a": "subscribe",
-    "p": { "t": ["topic1","topic2"] }
+    "p": { "t": ["topic1", "topic2"] }
 }
 ```
 
@@ -175,7 +187,7 @@ Response message:
 {
     "t": "topic",
     "a": "subscribe",
-    "p": { "t": ["topic1","topic2"] },
+    "p": { "t": ["topic1", "topic2"] },
     "s": 0
 }
 ```
@@ -185,7 +197,7 @@ Error message:
 {
     "t": "topic",
     "a": "subscribe",
-    "p": { "m": [error message] },
+    "p": { "m": <error message> },
     "s": 1 
 }
 ```
@@ -196,17 +208,17 @@ Request message:
 {
     "t": "topic",
     "a": "unsubscribe",
-    "p": { "t": ["topic1","topic2"] }
+    "p": { "t": ["topic1", "topic2"] }
 }
 ```
 
 Response message:
 ```
 {
-    "t":"topic",
-    "a":"unsubscribe",
-    "p": { "t": ["topic1","topic2"] },
-    "s":0
+    "t": "topic",
+    "a": "unsubscribe",
+    "p": { "t": ["topic1", "topic2"] },
+    "s": 0
 }
 ```
 
@@ -215,7 +227,7 @@ Error message:
 {
     "t": "topic",
     "a": "unsubscribe",
-    "p": { "m": [error message] },
+    "p": { "m": <error message> },
     "s": 1 
 }
 ```
@@ -227,7 +239,7 @@ Request message:
 {
     "t": "plugin",
     "a": "authenticate",
-    "p": { "token": [plugin access token] }
+    "p": { "token": <plugin access token> }
 }
 ```
 
@@ -237,8 +249,8 @@ Response message:
     "t": "plugin", 
     "a": "authenticate",
     "p": {
-        "tpc": [plugin topic name],
-        "e": [plugin access token expiration date],
+        "tpc": <plugin topic name>,
+        "e": <plugin access token expiration date>,
         "t": 1 
     },
     "s": 0
@@ -255,7 +267,7 @@ Error message:
 {
     "t": "plugin",
     "a": "authenticate",
-    "p": { "m": [error message] },
+    "p": { "m": <error message> },
     "s": 1 
 }
 ```
@@ -269,7 +281,7 @@ Request message:
     "a": "create",
     "p": {
         "t": "topic1", 
-        "m": [notification message srting], 
+        "m": <notification message srting>, 
         "part": 1
     }
 }
@@ -289,7 +301,7 @@ Error message:
 {
     "t": "notif",
     "a": "create",
-    "p": { "m": [error message] },
+    "p": { "m": <error message> },
     "s": 1 
 }
 ```
@@ -300,7 +312,7 @@ Notification message
 ```
 {
     "t": "notif",
-    "p": { "m": [notification message string] }
+    "p": { "m": <notification message string> }
 }
 ```
 
@@ -315,12 +327,12 @@ Request message
 Response message:
 ```
 {
-    "t":"health",
-    "s":0,
+    "t": "health",
+    "s": 0,
     "p": {
         "prx": "Available|Not Available",
         "mb": "Available|Not Available",
-        "mbfp": [0-100],
+        "mbfp": <0-100>,
         "comm": "Available|Not Available"
     }
 }
