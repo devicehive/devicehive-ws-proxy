@@ -13,7 +13,7 @@ allowing you to communicate with the next message brokers through WebSockets:
 
 - **_WEB_SOCKET_SERVER_HOST_** - WebSocket server host address (default: "localhost");  
 - **_WEB_SOCKET_SERVER_PORT_** - WebSocket server port to listen (default: 3000);  
-- **_WEB_SOCKET_PING_INTERVAL_S_** - Time interval in seconds between ping messages (default: 30);  
+- **_WEB_SOCKET_PING_INTERVAL_SEC_** - Time interval in seconds between ping messages (default: 30);  
 - **_ACK_ON_EVERY_MESSAGE_ENABLED_** - Enable/disable acknowledgment for every received message (default: false);  
 - **_ENABLE_PLUGIN_MANGER_** - Enable plugin manager (default: false);  
 - **_COMMUNICATOR_TYPE_** - Message broker that will be used internally (default: "kafka");  
@@ -52,6 +52,7 @@ Each configuration field can be overridden with corresponding environmental vari
 - **_KAFKA_CLIENT_ID_** - Kafka client name prefix (default: "ws-proxy-kafka-client");  
 - **_CONSUMER_GROUP_ID_** - Kafka consumer group prefix (default: "ws-proxy-consumer-group");  
 - **_LOGGER_LEVEL_** Kafka logger level (default: 0);  
+- **_METADATA_POLLING_INTERVAL_MS_** Kafka metadata polling interval (default: 1000);  
     
 Each configuration field can be overridden with corresponding environmental variable with "KAFKA" prefix, for example:
 

@@ -91,6 +91,13 @@ class Kafka extends EventEmitter {
                         });
                 });
         });
+
+        me._metadata = null;
+        me._topicArray = [];
+        me._topicRequestSet = new Set();
+        me._topicRequestEmitter = new EventEmitter();
+
+        me._initMetadataPoller();
     }
 
     /**
@@ -127,6 +134,7 @@ class Kafka extends EventEmitter {
 
         return me.getProducer()
             .then((producer) => producer.client.metadataRequest(topicsList))
+            .then(() => Promise.all(topicsList.map((topicName) => me._waitForTopic(topicName))))
             .then(() => {
                 debug(`Next topics has been created: ${topicsList}`);
                 return topicsList;
@@ -157,7 +165,10 @@ class Kafka extends EventEmitter {
         const me = this;
         const topicsToSubscribe = [];
 
-        return me.getConsumer()
+        return me.getProducer()
+            .then((producer) => producer.client.metadataRequest(topicsList))
+            .then(() => Promise.all(topicsList.map((topicName) => me._waitForTopic(topicName))))
+            .then(() => me.getConsumer())
             .then((consumer) => {
                 topicsList.forEach((topicName) => {
                     let subscriptionSet = me.subscriptionMap.get(topicName);
@@ -189,7 +200,10 @@ class Kafka extends EventEmitter {
         const me = this;
         const topicsToUnsubscribe = [];
 
-        return me.getConsumer()
+        return me.getProducer()
+            .then((producer) => producer.client.metadataRequest(topicsList))
+            .then(() => Promise.all(topicsList.map((topicName) => me._waitForTopic(topicName))))
+            .then(() => me.getConsumer())
             .then((consumer) => {
                 topicsList.forEach((topicName) => {
                     let subscriptionSet = me.subscriptionMap.get(topicName);
@@ -276,6 +290,41 @@ class Kafka extends EventEmitter {
                     messageSet.forEach((message) => {
                         me.emit(Kafka.MESSAGE_EVENT, subscriberId, topic, message.message.value, partition);
                     });
+                });
+            }
+        });
+    }
+
+    _initMetadataPoller() {
+        const me = this;
+
+        setInterval(() => {
+            me.getProducer()
+                .then((producer) => producer.client.metadataRequest())
+                .then((metadata) => {
+                    me._metadata = metadata;
+                    me._topicArray = me._metadata.topicMetadata.map((topicMetadata) => topicMetadata.topicName);
+
+                    me._topicArray.forEach((topicName) => {
+                        if (me._topicRequestSet.has(topicName)) {
+                            me._topicRequestEmitter.emit(topicName);
+                            me._topicRequestSet.delete(topicName);
+                        }
+                    });
+                });
+        }, KafkaConfig.METADATA_POLLING_INTERVAL_MS);
+    }
+
+    _waitForTopic(topicName) {
+        const me = this;
+
+        return new Promise((resolve) => {
+            if (me._topicArray.includes(topicName)) {
+                resolve();
+            } else {
+                me._topicRequestSet.add(topicName);
+                me._topicRequestEmitter.once(topicName, () => {
+                    resolve();
                 });
             }
         });
