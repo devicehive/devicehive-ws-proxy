@@ -102,10 +102,10 @@ class InternalCommunicatorFacade extends EventEmitter {
      * @param topicsList
      * @returns {*|Promise|Promise<number[]>|Promise<boolean>}
      */
-	unsubscribe(subscriberId, topicsList) {
+	unsubscribe(subscriberId, subscriptionGroup, topicsList) {
 		const me = this;
 
-		return me.communicator.unsubscribe(subscriberId, topicsList);
+		return me.communicator.unsubscribe(subscriberId, subscriptionGroup, topicsList);
 	}
 
     /**
