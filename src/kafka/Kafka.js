@@ -46,6 +46,9 @@ class Kafka extends EventEmitter {
             connectionString: KafkaConfig.KAFKA_HOSTS,
             logger: {
                 logLevel: KafkaConfig.LOGGER_LEVEL
+            },
+            batch: {
+                maxWait: KafkaConfig.PRODUCER_MAX_WAIT_TIME,
             }
         });
         me.consumer = new Consumer({
@@ -54,7 +57,9 @@ class Kafka extends EventEmitter {
             groupId: `${KafkaConfig.CONSUMER_GROUP_ID}-${clientUUID}`,
             logger: {
                 logLevel: KafkaConfig.LOGGER_LEVEL
-            }
+            },
+            idleTimeout: KafkaConfig.CONSUMER_IDLE_TIMEOUT,
+            maxWaitTime: KafkaConfig.CONSUMER_MAX_WAIT_TIME
         }, (isAvailable) => me.emit(isAvailable ? Kafka.AVAILABLE_EVENT : Kafka.NOT_AVAILABLE_EVENT));
 
         debug(`Started trying connect to server`);
@@ -297,6 +302,8 @@ class Kafka extends EventEmitter {
 
     _initMetadataPoller() {
         const me = this;
+
+        debug(`Metadata polling started with interval: ${KafkaConfig.METADATA_POLLING_INTERVAL_MS} ms`);
 
         setInterval(() => {
             me.getProducer()

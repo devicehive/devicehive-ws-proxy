@@ -1,3 +1,4 @@
+const CONST = require(`./constants.json`);
 const ProxyConfig = require(`../config`).proxy;
 const EventEmitter = require(`events`);
 const WebSocket = require(`ws`);
@@ -130,7 +131,7 @@ class WebSocketServer extends EventEmitter {
 
         setInterval(() => {
             me.getClientsSet().forEach((ws) => {
-                if (ws.isAlive === false) {
+                if (process.env.NODE_ENV !== CONST.DEVELOPMENT && ws.isAlive === false) {
                     return ws.terminate();
                 }
 
