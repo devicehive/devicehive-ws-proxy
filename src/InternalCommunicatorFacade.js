@@ -85,25 +85,27 @@ class InternalCommunicatorFacade extends EventEmitter {
     /**
 	 * Subscribes subscriberId to each topic in topicsList
      * @param subscriberId
+     * @param subscriptionGroup
      * @param topicsList
      * @returns {*|Promise|Promise<void>|Promise<PushSubscription>}
      */
-	subscribe(subscriberId, topicsList) {
+	subscribe(subscriberId, subscriptionGroup, topicsList) {
 		const me = this;
 
-		return me.communicator.subscribe(subscriberId, topicsList);
+		return me.communicator.subscribe(subscriberId, subscriptionGroup, topicsList);
 	}
 
     /**
 	 * Unsubscribes subscriberId from each topic in topicsList
      * @param subscriberId
+     * @param subscriptionGroup
      * @param topicsList
      * @returns {*|Promise|Promise<number[]>|Promise<boolean>}
      */
-	unsubscribe(subscriberId, topicsList) {
+	unsubscribe(subscriberId, subscriptionGroup, topicsList) {
 		const me = this;
 
-		return me.communicator.unsubscribe(subscriberId, topicsList);
+		return me.communicator.unsubscribe(subscriberId, subscriptionGroup, topicsList);
 	}
 
     /**

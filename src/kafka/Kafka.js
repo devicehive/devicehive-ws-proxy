@@ -49,18 +49,22 @@ class Kafka extends EventEmitter {
             },
             batch: {
                 maxWait: KafkaConfig.PRODUCER_MAX_WAIT_TIME,
+                size: KafkaConfig.PRODUCER_SIZE
             }
         });
-        me.consumer = new Consumer({
-            clientId: `${KafkaConfig.KAFKA_CLIENT_ID}-${clientUUID}`,
-            connectionString: KafkaConfig.KAFKA_HOSTS,
-            groupId: `${KafkaConfig.CONSUMER_GROUP_ID}-${clientUUID}`,
-            logger: {
-                logLevel: KafkaConfig.LOGGER_LEVEL
-            },
-            idleTimeout: KafkaConfig.CONSUMER_IDLE_TIMEOUT,
-            maxWaitTime: KafkaConfig.CONSUMER_MAX_WAIT_TIME
-        }, (isAvailable) => me.emit(isAvailable ? Kafka.AVAILABLE_EVENT : Kafka.NOT_AVAILABLE_EVENT));
+        // me.consumer = new Consumer({
+        //     clientId: `${KafkaConfig.KAFKA_CLIENT_ID}-${clientUUID}`,
+        //     connectionString: KafkaConfig.KAFKA_HOSTS,
+        //     groupId: `${KafkaConfig.CONSUMER_GROUP_ID}-${clientUUID}`,
+        //     logger: {
+        //         logLevel: KafkaConfig.LOGGER_LEVEL
+        //     },
+        //     idleTimeout: KafkaConfig.CONSUMER_IDLE_TIMEOUT,
+        //     maxWaitTime: KafkaConfig.CONSUMER_MAX_WAIT_TIME,
+        //     maxBytes: KafkaConfig.CONSUMER_MAX_BYTES
+        // }, (isAvailable) => me.emit(isAvailable ? Kafka.AVAILABLE_EVENT : Kafka.NOT_AVAILABLE_EVENT));
+
+        me.consumer = new Kafka.SimpleConsumer();
 
         debug(`Started trying connect to server`);
 
@@ -163,36 +167,44 @@ class Kafka extends EventEmitter {
     /**
      * Subscribes consumer to each topic of topicsList and adds subscriberId to each subscription
      * @param subscriberId
+     * @param subscriptionGroup
      * @param topicsList
      * @returns {Promise<Array>}
      */
-    subscribe(subscriberId, topicsList) {
+    subscribe(subscriberId, subscriptionGroup, topicsList) {
         const me = this;
         const topicsToSubscribe = [];
 
-        return me.getProducer()
-            .then((producer) => producer.client.metadataRequest(topicsList))
-            .then(() => Promise.all(topicsList.map((topicName) => me._waitForTopic(topicName))))
-            .then(() => me.getConsumer())
-            .then((consumer) => {
-                topicsList.forEach((topicName) => {
-                    let subscriptionSet = me.subscriptionMap.get(topicName);
+        return subscriptionGroup ?
+            me.getProducer()
+                .then((producer) => producer.client.metadataRequest(topicsList))
+                .then(() => Promise.all(topicsList.map((topicName) => me._waitForTopic(topicName))))
+                .then(() => {
 
-                    subscriptionSet ? subscriptionSet.add(subscriberId) : topicsToSubscribe.push(topicName);
+                }) :
+            me.getProducer()
+                .then((producer) => producer.client.metadataRequest(topicsList))
+                .then(() => Promise.all(topicsList.map((topicName) => me._waitForTopic(topicName))))
+                .then(() => me.getConsumer())
+                .then((consumer) => {
+                    topicsList.forEach((topicName) => {
+                        let subscriptionSet = me.subscriptionMap.get(topicName);
+
+                        subscriptionSet ? subscriptionSet.add(subscriberId) : topicsToSubscribe.push(topicName);
+                    });
+
+                    return Promise.all(topicsToSubscribe.map(topicName => consumer.subscribe(topicName,
+                        (messageSet, topics, partition) => me._onMessage(messageSet, topics, partition))));
+                })
+                .then(() => {
+                    topicsToSubscribe.forEach((topicName) => {
+                        me.subscriptionMap.set(topicName, new Set().add(subscriberId));
+                    });
+
+                    debug(`Subscriber with id: ${subscriberId} has subscribed to the next topics: ${topicsList}`);
+
+                    return topicsList;
                 });
-
-                return Promise.all(topicsToSubscribe.map(topicName => consumer.subscribe(topicName,
-                    (messageSet, topics, partition) => me._onMessage(messageSet, topics, partition))));
-            })
-            .then(() => {
-                topicsToSubscribe.forEach((topicName) => {
-                    me.subscriptionMap.set(topicName, new Set().add(subscriberId));
-                });
-
-                debug(`Subscriber with id: ${subscriberId} has subscribed to the next topics: ${topicsList}`);
-
-                return topicsList;
-            });
     }
 
     /**

@@ -56,6 +56,8 @@ class MessageBuffer extends EventEmitter {
             throw new FullMessageBufferError(message.message);
         }
 
+        message.size = sizeOfMessage;
+
         me.fifo.push(message);
         me._incrementDataSize(sizeOfMessage);
 
@@ -70,7 +72,7 @@ class MessageBuffer extends EventEmitter {
      */
     unshift(message) {
         const me = this;
-        const sizeOfMessage = sizeof(message);
+        const sizeOfMessage = sizeof(message.message);
 
         if (me.getFreeMemory() < sizeOfMessage) {
             throw new FullMessageBufferError(message.message);
@@ -97,6 +99,25 @@ class MessageBuffer extends EventEmitter {
         debug(`Shifted message, length: ${me.length}`);
 
         return message;
+    }
+
+    /**
+     *
+     * @returns {Array}
+     */
+    getBatch() {
+        const me = this;
+        const result = [];
+        let batchSize = 0;
+
+        while (batchSize < Config.MAX_BATCH_SIZE) {
+            const message = me.shift();
+
+            batchSize += message.size;
+            result.push(message);
+        }
+
+        return result;
     }
 
     /**

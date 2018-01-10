@@ -10,7 +10,7 @@ const ApplicationLogger = require(`./ApplicationLogger`);
 
 const logger = new ApplicationLogger(CONST.APPLICATION_TAG, Config.APP_LOG_LEVEL);
 const messageBuffer = new MessageBuffer();
-const pluginManager = new PluginManager(!Config.ENABLE_PLUGIN_MANGER);
+const pluginManager = new PluginManager(!Config.ENABLE_PLUGIN_MANGER); //TODO
 const internalCommunicatorFacade = new InternalCommunicatorFacade(Config.COMMUNICATOR_TYPE);
 const webSocketServer = new WebSocketServer();
 
@@ -239,14 +239,15 @@ function processTopicListAction(clientId, message) {
  */
 function processTopicSubscribeAction(clientId, message) {
     if (Array.isArray(message.payload.topicList)) {
-        internalCommunicatorFacade.subscribe(clientId, message.payload.topicList)
-            .then((topicSubscriptionList) => {
+        internalCommunicatorFacade.subscribe(clientId, message.payload.subscriptionGroup, message.payload.topicList)
+            .then((subscriptionGroup, topicSubscriptionList) => {
                 webSocketServer.send(clientId, new Message({
                     id: message.id,
                     type: MessageUtils.TOPIC_TYPE,
                     action: MessageUtils.SUBSCRIBE_ACTION,
                     status: MessageUtils.SUCCESS_STATUS,
                     payload: {
+                        subscriptionGroup: subscriptionGroup,
                         topicList: topicSubscriptionList
                     }
                 }).toString());
@@ -267,14 +268,15 @@ function processTopicSubscribeAction(clientId, message) {
  */
 function processTopicUnsubscribeAction(clientId, message) {
     if (Array.isArray(message.payload.topicList)) {
-        internalCommunicatorFacade.unsubscribe(clientId, message.payload.topicList)
-            .then((topicUnsubscriptionList) => {
+        internalCommunicatorFacade.unsubscribe(clientId, message.payload.subscriptionGroup, message.payload.topicList)
+            .then((subscriptionGroup, topicUnsubscriptionList) => {
                 webSocketServer.send(clientId, new Message({
                     id: message.id,
                     type: MessageUtils.TOPIC_TYPE,
                     action: MessageUtils.UNSUBSCRIBE_ACTION,
                     status: MessageUtils.SUCCESS_STATUS,
                     payload: {
+                        subscriptionGroup: subscriptionGroup,
                         topicList: topicUnsubscriptionList
                     }
                 }).toString());
