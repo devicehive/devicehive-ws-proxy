@@ -96,8 +96,7 @@ All messages are `JSON` based. Generic message structure looks like this:
 | a     | `String`        | Action: ["create","list","subscribe","unsubscribe","authenticate" "ack"]|
 | s     | `Int`           | Status, returned by the server, 0 if OK. |
 | p     | `Object`        | Payload object |
-| m     | `String`        | Payload message |
-| sg    | `String`        | Subscription group |
+
 
 Server can receive a list of messages in one batch.
 
@@ -185,8 +184,10 @@ Request message:
 {
     "t": "topic",
     "a": "subscribe",
-    "sg": "subscriptionGroup",
-    "p": { "t": ["topic1", "topic2"] }
+    "p": { 
+        "sg": "subscriptionGroup",
+        "t": ["topic1", "topic2"] 
+    }
 }
 ```
 
