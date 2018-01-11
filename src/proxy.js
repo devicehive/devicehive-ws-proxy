@@ -240,14 +240,14 @@ function processTopicListAction(clientId, message) {
 function processTopicSubscribeAction(clientId, message) {
     if (Array.isArray(message.payload.topicList)) {
         internalCommunicatorFacade.subscribe(clientId, message.payload.subscriptionGroup, message.payload.topicList)
-            .then((subscriptionGroup, topicSubscriptionList) => {
+            .then((topicSubscriptionList) => {
                 webSocketServer.send(clientId, new Message({
                     id: message.id,
                     type: MessageUtils.TOPIC_TYPE,
                     action: MessageUtils.SUBSCRIBE_ACTION,
                     status: MessageUtils.SUCCESS_STATUS,
                     payload: {
-                        subscriptionGroup: subscriptionGroup,
+                        subscriptionGroup: message.payload.subscriptionGroup,
                         topicList: topicSubscriptionList
                     }
                 }).toString());
@@ -268,15 +268,14 @@ function processTopicSubscribeAction(clientId, message) {
  */
 function processTopicUnsubscribeAction(clientId, message) {
     if (Array.isArray(message.payload.topicList)) {
-        internalCommunicatorFacade.unsubscribe(clientId, message.payload.subscriptionGroup, message.payload.topicList)
-            .then((subscriptionGroup, topicUnsubscriptionList) => {
+        internalCommunicatorFacade.unsubscribe(clientId, message.payload.topicList)
+            .then((topicUnsubscriptionList) => {
                 webSocketServer.send(clientId, new Message({
                     id: message.id,
                     type: MessageUtils.TOPIC_TYPE,
                     action: MessageUtils.UNSUBSCRIBE_ACTION,
                     status: MessageUtils.SUCCESS_STATUS,
                     payload: {
-                        subscriptionGroup: subscriptionGroup,
                         topicList: topicUnsubscriptionList
                     }
                 }).toString());

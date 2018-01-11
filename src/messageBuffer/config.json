@@ -1,51 +1,5 @@
 {
     "BUFFER_POLLING_INTERVAL_MS": 0,
     "BUFFER_POLLING_MESSAGE_AMOUNT": 100,
-    "MAX_SIZE_MB": 128,
-    "BATCHING_LEVELS": {
-      "0": {
-        "BUFFER_POLLING_INTERVAL_MS": 0,
-        "BUFFER_POLLING_MESSAGE_AMOUNT": 100
-      },
-      "1": {
-        "BUFFER_POLLING_INTERVAL_MS": 10,
-        "BUFFER_POLLING_MESSAGE_AMOUNT": 100
-      },
-      "2": {
-        "BUFFER_POLLING_INTERVAL_MS": 20,
-        "BUFFER_POLLING_MESSAGE_AMOUNT": 200
-      },
-      "3": {
-        "BUFFER_POLLING_INTERVAL_MS": 30,
-        "BUFFER_POLLING_MESSAGE_AMOUNT": 300
-      },
-      "4": {
-        "BUFFER_POLLING_INTERVAL_MS": 40,
-        "BUFFER_POLLING_MESSAGE_AMOUNT": 400
-      },
-      "5": {
-        "BUFFER_POLLING_INTERVAL_MS": 50,
-        "BUFFER_POLLING_MESSAGE_AMOUNT": 500
-      },
-      "6": {
-        "BUFFER_POLLING_INTERVAL_MS": 60,
-        "BUFFER_POLLING_MESSAGE_AMOUNT": 600
-      },
-      "7": {
-        "BUFFER_POLLING_INTERVAL_MS": 70,
-        "BUFFER_POLLING_MESSAGE_AMOUNT": 700
-      },
-      "8": {
-        "BUFFER_POLLING_INTERVAL_MS": 80,
-        "BUFFER_POLLING_MESSAGE_AMOUNT": 800
-      },
-      "9": {
-        "BUFFER_POLLING_INTERVAL_MS": 90,
-        "BUFFER_POLLING_MESSAGE_AMOUNT": 900
-      },
-      "10": {
-        "BUFFER_POLLING_INTERVAL_MS": 1000,
-        "BUFFER_POLLING_MESSAGE_AMOUNT": 1000
-      }
-    }
+    "MAX_SIZE_MB": 128
 }
