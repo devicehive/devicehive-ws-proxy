@@ -26,10 +26,24 @@ class Kafka extends EventEmitter {
 
     static get INTERNAL_TOPIC_PREFIX() { return `__` };
 
+    /**
+     * Generate subscription group identification key
+     * @param subscriber
+     * @param group
+     * @param topic
+     * @returns {string}
+     * @private
+     */
     static _generateSubscriptionGroupKey(subscriber, group,  topic) {
         return `${subscriber}:${group}:${topic}`;
     }
 
+    /**
+     * Returns Kafka producer config
+     * @param clientId
+     * @returns {{clientId: string, connectionString: *, logger: {logLevel: *}, batch: {maxWait: *, size: *}}}
+     * @private
+     */
     static _getProducerConfig(clientId) {
         return {
             clientId: `${KafkaConfig.KAFKA_CLIENT_ID}-${clientId}`,
@@ -44,6 +58,13 @@ class Kafka extends EventEmitter {
         };
     }
 
+    /**
+     * Returns Kafka consumer config
+     * @param clientId
+     * @param groupId
+     * @returns {{clientId: string, connectionString: *, groupId: string, logger: {logLevel: *}, idleTimeout: *, maxWaitTime: *, maxBytes: *}}
+     * @private
+     */
     static _getConsumerConfig(clientId, groupId) {
         return {
             clientId: `${KafkaConfig.KAFKA_CLIENT_ID}-${clientId}`,

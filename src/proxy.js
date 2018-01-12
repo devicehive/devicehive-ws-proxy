@@ -10,7 +10,7 @@ const ApplicationLogger = require(`./ApplicationLogger`);
 
 const logger = new ApplicationLogger(CONST.APPLICATION_TAG, Config.APP_LOG_LEVEL);
 const messageBuffer = new MessageBuffer();
-const pluginManager = new PluginManager(!Config.ENABLE_PLUGIN_MANGER); //TODO
+const pluginManager = new PluginManager(!Config.ENABLE_PLUGIN_MANGER);
 const internalCommunicatorFacade = new InternalCommunicatorFacade(Config.COMMUNICATOR_TYPE);
 const webSocketServer = new WebSocketServer();
 
