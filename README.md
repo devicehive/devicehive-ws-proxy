@@ -15,7 +15,7 @@ allowing you to communicate with the next message brokers through WebSockets:
 - **_WEB_SOCKET_SERVER_PORT_** - WebSocket server port to listen (default: 3000);  
 - **_WEB_SOCKET_PING_INTERVAL_SEC_** - Time interval in seconds between ping messages (default: 30);  
 - **_ACK_ON_EVERY_MESSAGE_ENABLED_** - Enable/disable acknowledgment for every received message (default: false);  
-- **_ENABLE_PLUGIN_MANGER_** - Enable plugin manager (default: false);  
+- **_ENABLE_PLUGIN_MANAGER_** - Enable plugin manager (default: false);  
 - **_COMMUNICATOR_TYPE_** - Message broker that will be used internally (default: "kafka");  
 - **_APP_LOG_LEVEL_** - Proxy logger level: debug, info, warn, error (default: "info");  
 
