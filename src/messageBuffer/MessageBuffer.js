@@ -26,10 +26,16 @@ class MessageBuffer extends EventEmitter {
         me.maxDataSizeB = me.freeMemory = Config.MAX_SIZE_MB * Utils.B_IN_MB;
         me.dataSize = 0;
         me.pollingIntervalHandler = null;
+        me.loadAnalyzerHandler = null;
+        me.loadSizeCounter = 0;
+        me.memoryLoadPerSec = 0;
+
 
         debug(`Maximum size of message buffer: ${Config.MAX_SIZE_MB} Mb`);
         debug(`Polling interval: ${Config.BUFFER_POLLING_INTERVAL_MS} ms`);
         debug(`Message amount per polling cycle: ${Config.BUFFER_POLLING_MESSAGE_AMOUNT}`);
+
+        me.__initLoadAnalyzerInterval();
     }
 
     /**
@@ -50,7 +56,7 @@ class MessageBuffer extends EventEmitter {
      */
     push(message) {
         const me = this;
-        const sizeOfMessage = sizeof(message);
+        const sizeOfMessage = sizeof(message.message);
 
         if (me.getFreeMemory() < sizeOfMessage) {
             throw new FullMessageBufferError(message.message);
@@ -154,6 +160,12 @@ class MessageBuffer extends EventEmitter {
         return me.freeMemory;
     }
 
+    getMemoryLoadPerSec() {
+        const me = this;
+
+        return me.memoryLoadPerSec;
+    }
+
     /**
      * Returns fill percentage
      * @returns {String}
@@ -191,8 +203,8 @@ class MessageBuffer extends EventEmitter {
         const me = this;
 
         me.dataSize += bytesAmount;
+        me._increaseLoadSizeCounter(bytesAmount);
         me._checkMemoryUsage();
-
     }
 
     /**
@@ -246,6 +258,66 @@ class MessageBuffer extends EventEmitter {
                 }
             }
         }, Config.BUFFER_POLLING_INTERVAL_MS);
+    }
+
+    /**
+     *
+     * @param value
+     * @private
+     */
+    _increaseLoadSizeCounter(value) {
+        const me = this;
+
+        me.loadSizeCounter += value;
+    }
+
+    /**
+     *
+     * @private
+     */
+    _resetLoadSizeCounter() {
+        const me = this;
+
+        me.loadSizeCounter = 0;
+    }
+
+    /**
+     *
+     * @returns {number}
+     * @private
+     */
+    _getLoadSizeCounter() {
+        const me = this;
+
+        return me.loadSizeCounter;
+    }
+
+    /**
+     *
+     * @param value
+     * @private
+     */
+    _setMemoryLoadPerSec(value) {
+        const me = this;
+
+        me.memoryLoadPerSec = value;
+    }
+
+    /**
+     * Initialize load analyzer interval
+     * @event poll
+     * @private
+     */
+    __initLoadAnalyzerInterval() {
+        const me = this;
+
+        me.loadAnalyzerHandler = setInterval(() => {
+            me._setMemoryLoadPerSec(me._getLoadSizeCounter());
+
+            console.log(me.getMemoryLoadPerSec());
+
+            me._resetLoadSizeCounter();
+        }, Config.LOAD_ANALYZER_INTERVAL_SEC * 1000);
     }
 }
 
