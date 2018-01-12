@@ -37,7 +37,7 @@ services:
       PLUGIN_MANAGER.AUTH_SERVICE_ENDPOINT: "http://192.168.160.107:8090/dh/rest"
       PLUGIN_MANAGER.PLUGIN_MANAGEMENT_SERVICE_ENDPOINT: "http://192.168.160.107:8110/dh/rest"
       PROXY.WEB_SOCKET_SERVER_HOST: "internalproxy"
-      PROXY.ENABLE_PLUGIN_MANGER: "false"
+      PROXY.ENABLE_PLUGIN_MANAGER: "false"
       DEBUG: "kafka,pluginmanager"
     networks:
       - shared
@@ -49,7 +49,7 @@ services:
       PLUGIN_MANAGER.AUTH_SERVICE_ENDPOINT: "http://192.168.160.107:8090/dh/rest"
       PLUGIN_MANAGER.PLUGIN_MANAGEMENT_SERVICE_ENDPOINT: "http://192.168.160.107:8110/dh/rest"
       PROXY.WEB_SOCKET_SERVER_HOST: "externalproxy"
-      PROXY.ENABLE_PLUGIN_MANGER: "true"
+      PROXY.ENABLE_PLUGIN_MANAGER: "true"
       DEBUG: "kafka,pluginmanager"
     networks:
       - shared

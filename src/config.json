@@ -5,5 +5,5 @@
     "ACK_ON_EVERY_MESSAGE_ENABLED": false,
     "COMMUNICATOR_TYPE": "kafka",
     "APP_LOG_LEVEL": "info",
-    "ENABLE_PLUGIN_MANGER": false
+    "ENABLE_PLUGIN_MANAGER": false
 }
