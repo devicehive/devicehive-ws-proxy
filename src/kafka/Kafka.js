@@ -44,18 +44,13 @@ class Kafka extends EventEmitter {
      * @returns {{clientId: string, connectionString: *, logger: {logLevel: *}, batch: {maxWait: *, size: *}}}
      * @private
      */
-    static _getProducerConfig(clientId) {
-        return {
-            clientId: `${KafkaConfig.KAFKA_CLIENT_ID}-${clientId}`,
-            connectionString: KafkaConfig.KAFKA_HOSTS,
-            logger: {
-                logLevel: KafkaConfig.LOGGER_LEVEL
-            },
-            batch: {
-                maxWait: KafkaConfig.PRODUCER_MAX_WAIT_TIME,
-                size: KafkaConfig.PRODUCER_SIZE
-            }
-        };
+    _getProducerConfig(clientId) {
+        const me = this;
+        const result = Object.assign({}, me.defaultProducerConfig);
+
+        result.clientId = `${KafkaConfig.KAFKA_CLIENT_ID}-${clientId}`;
+
+        return result;
     }
 
     /**
@@ -65,18 +60,14 @@ class Kafka extends EventEmitter {
      * @returns {{clientId: string, connectionString: *, groupId: string, logger: {logLevel: *}, idleTimeout: *, maxWaitTime: *, maxBytes: *}}
      * @private
      */
-    static _getConsumerConfig(clientId, groupId) {
-        return {
-            clientId: `${KafkaConfig.KAFKA_CLIENT_ID}-${clientId}`,
-            connectionString: KafkaConfig.KAFKA_HOSTS,
-            groupId: `${KafkaConfig.CONSUMER_GROUP_ID_PREFIX}-${groupId || clientId}`,
-            logger: {
-                logLevel: KafkaConfig.LOGGER_LEVEL
-            },
-            idleTimeout: KafkaConfig.CONSUMER_IDLE_TIMEOUT,
-            maxWaitTime: KafkaConfig.CONSUMER_MAX_WAIT_TIME,
-            maxBytes: KafkaConfig.CONSUMER_MAX_BYTES
-        };
+    _getConsumerConfig(clientId, groupId) {
+        const me = this;
+        const result = Object.assign({}, me.defaultConsumerConfig);
+
+        result.clientId = `${KafkaConfig.KAFKA_CLIENT_ID}-${clientId}`;
+        result.groupId = `${KafkaConfig.CONSUMER_GROUP_ID_PREFIX}-${groupId || clientId}`;
+
+        return result;
     }
 
     /**
@@ -88,14 +79,36 @@ class Kafka extends EventEmitter {
         const me = this;
 
         me.clientUUID = uuid();
+        me.defaultProducerConfig = {
+            clientId: `${KafkaConfig.KAFKA_CLIENT_ID}-${me.clientUUID}`,
+            connectionString: KafkaConfig.KAFKA_HOSTS,
+            logger: {
+                logLevel: KafkaConfig.LOGGER_LEVEL
+            },
+            batch: {
+                maxWait: KafkaConfig.PRODUCER_MAX_WAIT_TIME,
+                size: KafkaConfig.PRODUCER_SIZE
+            }
+        };
+        me.defaultConsumerConfig = {
+            clientId: `${KafkaConfig.KAFKA_CLIENT_ID}-${me.clientUUID}`,
+            connectionString: KafkaConfig.KAFKA_HOSTS,
+            groupId: `${KafkaConfig.CONSUMER_GROUP_ID_PREFIX}-${me.clientUUID}`,
+            logger: {
+                logLevel: KafkaConfig.LOGGER_LEVEL
+            },
+            idleTimeout: KafkaConfig.CONSUMER_IDLE_TIMEOUT,
+            maxWaitTime: KafkaConfig.CONSUMER_MAX_WAIT_TIME,
+            maxBytes: KafkaConfig.CONSUMER_MAX_BYTES
+        };
         me.isProducerReady = false;
         me.isConsumerReady = false;
         me.available = true;
         me.subscriptionMap = new Map();
         me.subscriptionGroupMap = new Map();
         me.groupConsumersMap = new Map();
-        me.producer = new NoKafka.Producer(Kafka._getProducerConfig(me.clientUUID));
-        me.consumer = new NoKafka.SimpleConsumer(Kafka._getConsumerConfig(me.clientUUID));
+        me.producer = new NoKafka.Producer(me._getProducerConfig(me.clientUUID));
+        me.consumer = new NoKafka.SimpleConsumer(me._getConsumerConfig(me.clientUUID));
 
         debug(`Started trying connect to server`);
 
@@ -340,7 +353,12 @@ class Kafka extends EventEmitter {
         const me = this;
 
         return me.getProducer()
-            .then((producer) => producer.send(payload));
+            .then((producer) => producer.send(payload, {
+                batch: {
+                    size: me.defaultProducerConfig.batch.size,
+                    maxWait: me.defaultProducerConfig.batch.maxWait
+                }
+            }));
     }
 
     /**
@@ -413,6 +431,10 @@ class Kafka extends EventEmitter {
         });
     }
 
+    /**
+     *
+     * @private
+     */
     _initMetadataPoller() {
         const me = this;
 
@@ -435,6 +457,12 @@ class Kafka extends EventEmitter {
         }, KafkaConfig.METADATA_POLLING_INTERVAL_MS);
     }
 
+    /**
+     *
+     * @param topicName
+     * @returns {Promise<any>}
+     * @private
+     */
     _waitForTopic(topicName) {
         const me = this;
 
@@ -448,6 +476,32 @@ class Kafka extends EventEmitter {
                 });
             }
         });
+    }
+
+    /**
+     *
+     * @param batchSize
+     * @param timeInterval
+     */
+    setInputLoad(batchSize, timeInterval) {
+        const me = this;
+
+        me.defaultProducerConfig.batch.maxWait = timeInterval;
+        me.defaultProducerConfig.batch.size = batchSize;
+
+
+        debug(`New producer batch configuration: Batch size: ${batchSize}, Wait time: ${timeInterval}`);
+    }
+
+    /**
+     *
+     * @param batchSize
+     * @param timeInterval
+     */
+    setOutputLoad(batchSize, timeInterval) {
+        const me = this;
+
+        debug(`New consumer batch configuration: Batch size: ${batchSize}, Wait time: ${timeInterval}`);
     }
 }
 

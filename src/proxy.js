@@ -14,6 +14,7 @@ const pluginManager = new PluginManager(!Config.ENABLE_PLUGIN_MANAGER);
 const internalCommunicatorFacade = new InternalCommunicatorFacade(Config.COMMUNICATOR_TYPE);
 const webSocketServer = new WebSocketServer();
 
+const debug = require(`debug`)(`main`);
 
 initProcessExitHandlers();
 
@@ -62,13 +63,24 @@ internalCommunicatorFacade.on(InternalCommunicatorFacade.MESSAGE_EVENT, (clientI
     }).toString());
 });
 
-internalCommunicatorFacade.on(InternalCommunicatorFacade.AVAILABLE_EVENT, () => messageBuffer.startPolling());
-internalCommunicatorFacade.on(InternalCommunicatorFacade.NOT_AVAILABLE_EVENT, () => messageBuffer.stopPolling());
+internalCommunicatorFacade.on(InternalCommunicatorFacade.AVAILABLE_EVENT, () => {
+    messageBuffer.enablePolling = true;
+    messageBuffer.startPolling()
+});
+internalCommunicatorFacade.on(InternalCommunicatorFacade.NOT_AVAILABLE_EVENT, () => {
+    messageBuffer.enablePolling = false;
+    messageBuffer.stopPolling()
+});
 
-messageBuffer.on(MessageBuffer.POLL_EVENT, () => {
-    if (internalCommunicatorFacade.isAvailable()) {
-        processMessage(messageBuffer.shift());
-    }
+messageBuffer.on(MessageBuffer.POLL_EVENT, (messages) => messages.forEach((message) => processMessage(message)));
+
+messageBuffer.on(MessageBuffer.LOAD_CHANGED_EVENT, (bytesPerSec, loadLevel) => {
+    const bufferPollingInterval = MessageBuffer.calculatePollingInterval(bytesPerSec, loadLevel);
+    const maxBatchSize = MessageBuffer.calculateMaxBatchSize(bytesPerSec, bufferPollingInterval);
+
+    internalCommunicatorFacade.setInputLoad(maxBatchSize, bufferPollingInterval);
+
+    debug(`Input load has been changed to ${bytesPerSec} B/s. Step: ${loadLevel}`);
 });
 
 
