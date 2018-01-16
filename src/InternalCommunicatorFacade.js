@@ -138,26 +138,6 @@ class InternalCommunicatorFacade extends EventEmitter {
 
 		return me.communicator.isAvailable();
 	}
-
-    /**
-     *
-     * @param bytesPerSec
-     */
-	setInputLoad(bytesPerSec, loadLevel) {
-        const me = this;
-
-        me.communicator.setInputLoad(bytesPerSec, loadLevel);
-    }
-
-    /**
-     *
-     * @param bytesPerSec
-     */
-    setOutputLoad(bytesPerSec) {
-        const me = this;
-
-        me.communicator.setOutputLoad(bytesPerSec);
-    }
 }
 
 

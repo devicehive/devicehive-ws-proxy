@@ -4,6 +4,8 @@ const Utils = require(`../../utils`);
 const NoKafka = require(`no-kafka`);
 const uuid = require(`uuid/v1`);
 const debug = require(`debug`)(`kafka`);
+const sizeof = require('object-sizeof');
+
 
 
 /**
@@ -84,10 +86,6 @@ class Kafka extends EventEmitter {
             connectionString: KafkaConfig.KAFKA_HOSTS,
             logger: {
                 logLevel: KafkaConfig.LOGGER_LEVEL
-            },
-            batch: {
-                maxWait: KafkaConfig.PRODUCER_MAX_WAIT_TIME,
-                size: KafkaConfig.PRODUCER_SIZE
             }
         };
         me.defaultConsumerConfig = {
@@ -141,6 +139,8 @@ class Kafka extends EventEmitter {
         me._topicRequestEmitter = new EventEmitter();
 
         me._initMetadataPoller();
+
+        me.inputThroughputWatcher = me.createThroughputWatcher(1000);
     }
 
     /**
@@ -351,12 +351,18 @@ class Kafka extends EventEmitter {
      */
     send(payload) {
         const me = this;
+        let throughput, isThroughputSmall;
+
+        me.inputThroughputWatcher.calculate(payload);
+        throughput = me.inputThroughputWatcher.getThroughput();
+        isThroughputSmall = throughput < KafkaConfig.PRODUCER_MINIMAL_BATCHING_THROUGHPUT_PER_SEC_B;
 
         return me.getProducer()
             .then((producer) => producer.send(payload, {
                 batch: {
-                    size: me.defaultProducerConfig.batch.size,
-                    maxWait: me.defaultProducerConfig.batch.maxWait
+                    size: isThroughputSmall ? 0 : throughput / 10,
+                    maxWait: isThroughputSmall ?
+                        0 : (throughput / KafkaConfig.PRODUCER_MINIMAL_BATCHING_THROUGHPUT_PER_SEC_B) * 100
                 }
             }));
     }
@@ -478,30 +484,30 @@ class Kafka extends EventEmitter {
         });
     }
 
-    /**
-     *
-     * @param batchSize
-     * @param timeInterval
-     */
-    setInputLoad(batchSize, timeInterval) {
-        const me = this;
+    createThroughputWatcher(intervalMs) {
+        let throughput = 0;
+        let totalSize = 0;
+        let prevTimeStamp = 0;
 
-        // me.defaultProducerConfig.batch.maxWait = timeInterval;
-        // me.defaultProducerConfig.batch.size = batchSize;
+        return {
+            calculate (payload) {
+                totalSize += sizeof(payload);
 
+                const timeStamp = new Date().getTime();
 
-        debug(`New producer batch configuration: Batch size: ${batchSize}, Wait time: ${timeInterval}`);
-    }
+                if ((timeStamp - prevTimeStamp) > intervalMs) {
+                    if (prevTimeStamp !== 0) {
+                        throughput = Math.floor(totalSize / ((timeStamp - prevTimeStamp) / intervalMs));
+                    }
+                    totalSize = 0;
+                    prevTimeStamp = timeStamp;
+                }
+            },
 
-    /**
-     *
-     * @param batchSize
-     * @param timeInterval
-     */
-    setOutputLoad(batchSize, timeInterval) {
-        const me = this;
-
-        debug(`New consumer batch configuration: Batch size: ${batchSize}, Wait time: ${timeInterval}`);
+            getThroughput () {
+                return throughput;
+            }
+        }
     }
 }
 

@@ -5,7 +5,6 @@ const EventEmitter = require(`events`);
 const FullMessageBufferError = require(`../../lib/errors/messageBuffer/FullMessageBufferError`);
 const sizeof = require('object-sizeof');
 const debug = require(`debug`)(`messagebuffer`);
-const CircularBuffer = require("circular-buffer");
 
 
 /**
@@ -14,30 +13,6 @@ const CircularBuffer = require("circular-buffer");
 class MessageBuffer extends EventEmitter {
 
     static get POLL_EVENT() { return `poll` };
-    static get LOAD_CHANGED_EVENT() { return `loadChanged` };
-
-    /**
-     * TODO
-     * @param loadSize
-     * @param loadStep
-     * @returns {number}
-     */
-    static calculatePollingInterval(loadSize, loadStep) {
-        const result =  loadStep * 10;
-
-        return !result ?
-            result : 5 > Config.BUFFER_POLLING_MESSAGE_AMOUNT ?
-                Config.BUFFER_POLLING_MESSAGE_AMOUNT : result;
-    }
-
-    /**
-     * TODO
-     * @param loadSize
-     * @param timeInterval
-     */
-    static calculateMaxBatchSize(loadSize, timeInterval) {
-        return Math.floor(!loadSize ? loadSize : loadSize / (Utils.MS_IN_S / timeInterval) / 100);
-    }
 
     /**
      * Creates new MessageBuffer
@@ -50,25 +25,11 @@ class MessageBuffer extends EventEmitter {
         me.fifo = new FIFO();
         me.maxDataSizeB = me.freeMemory = Config.MAX_SIZE_MB * Utils.B_IN_MB;
         me.dataSize = 0;
-        me.pollingIntervalHandler = null;
-        me.isPollingInStop = true;
-        me.enablePolling = false;
-        me.loadAnalyzerHandler = null;
-        me.loadSizeCounter = 0;
-        me.memoryLoadPerSec = 0;
-        me.maxBatchSize = 100000;
+        me._pollingIntervalHandler = null;
+        me._isPollingInStop = true;
+        me._enablePolling = false;
 
         debug(`Maximum size of message buffer: ${Config.MAX_SIZE_MB} Mb`);
-
-        me.on(MessageBuffer.LOAD_CHANGED_EVENT, (loadSize, loadStep) => {
-            me.maxBatchSize = loadSize / 10; //MessageBuffer.calculateMaxBatchSize(loadSize, me.bufferPollingInterval);
-
-            me.restartPolling();
-
-            debug(`New polling metrics: Maximum Batch Size: ${me.maxBatchSize}`);
-        });
-
-        me._initLoadAnalyzerInterval();
     }
 
     /**
@@ -100,11 +61,11 @@ class MessageBuffer extends EventEmitter {
         me.fifo.push(message);
         me._incrementDataSize(sizeOfMessage);
 
-        if (me.isPollingInStop === true && me.enablePolling === true) {
+        if (me._isPollingInStop === true && me._enablePolling === true) {
             me.startPolling();
         }
 
-        //debug(`Pushed new message, length: ${me.length}`);
+        debug(`Pushed new message, length: ${me.length}`);
     }
 
     /**
@@ -124,11 +85,11 @@ class MessageBuffer extends EventEmitter {
         me.fifo.unshift(message);
         me._incrementDataSize(sizeOfMessage);
 
-        if (me.isPollingInStop === true && me.enablePolling === true) {
+        if (me._isPollingInStop === true && me._enablePolling === true) {
             me.startPolling();
         }
 
-        //debug(`Unshifted new message, length: ${me.length}`);
+        debug(`Unshifted new message, length: ${me.length}`);
     }
 
     /**
@@ -143,26 +104,21 @@ class MessageBuffer extends EventEmitter {
 
         me._decrementDataSize(sizeof(message));
 
-        //debug(`Shifted message, length: ${me.length}`);
+        debug(`Shifted message, length: ${me.length}`);
 
         return message;
     }
 
     /**
      *
-     * @param maxBatchSize
      * @returns {Array}
      */
-    getBatch(maxBatchSize = 100000) {
+    getBatch() {
         const me = this;
         const result = [];
-        let batchSize = 0;
 
-        while (me.length && (batchSize < maxBatchSize)) {
-            const message = me.shift();
-
-            batchSize += message.size;
-            result.push(message);
+        while (me.length) {
+            result.push(me.shift());
         }
 
         return result;
@@ -202,12 +158,6 @@ class MessageBuffer extends EventEmitter {
         return me.freeMemory;
     }
 
-    getMemoryLoadPerSec() {
-        const me = this;
-
-        return me.memoryLoadPerSec;
-    }
-
     /**
      * Returns fill percentage
      * @returns {String}
@@ -225,7 +175,7 @@ class MessageBuffer extends EventEmitter {
        const me = this;
 
        me._initPollingInterval();
-       me.isPollingInStop = false;
+       me._isPollingInStop = false;
 
         debug(`Polling started`);
     }
@@ -236,8 +186,8 @@ class MessageBuffer extends EventEmitter {
     stopPolling() {
         const me = this;
 
-        clearInterval(me.pollingIntervalHandler);
-        me.isPollingInStop = true;
+        clearInterval(me._pollingIntervalHandler);
+        me._isPollingInStop = true;
 
         debug(`Polling stopped`);
     }
@@ -253,6 +203,24 @@ class MessageBuffer extends EventEmitter {
     }
 
     /**
+     *
+     */
+    enablePolling() {
+        const me = this;
+
+        me._enablePolling = true;
+    }
+
+    /**
+     *
+     */
+    disablePolling() {
+        const me = this;
+
+        me._enablePolling = false;
+    }
+
+    /**
      * Increment data size counter
      * @param bytesAmount
      * @private
@@ -261,7 +229,6 @@ class MessageBuffer extends EventEmitter {
         const me = this;
 
         me.dataSize += bytesAmount;
-        me._increaseLoadSizeCounter(bytesAmount);
         me._checkMemoryUsage();
     }
 
@@ -306,89 +273,13 @@ class MessageBuffer extends EventEmitter {
     _initPollingInterval() {
         const me = this;
 
-        me.pollingIntervalHandler = setInterval(() => {
+        me._pollingIntervalHandler = setInterval(() => {
             if (me.length > 0) {
-                me.emit(MessageBuffer.POLL_EVENT, me.getBatch(me.maxBatchSize));
+                me.emit(MessageBuffer.POLL_EVENT, me.getBatch());
             } else {
                 me.stopPolling();
             }
-        }, 10);
-    }
-
-    /**
-     *
-     * @param value
-     * @private
-     */
-    _increaseLoadSizeCounter(value) {
-        const me = this;
-
-        me.loadSizeCounter += value;
-    }
-
-    /**
-     *
-     * @private
-     */
-    _resetLoadSizeCounter() {
-        const me = this;
-
-        me.loadSizeCounter = 0;
-    }
-
-    /**
-     *
-     * @returns {number}
-     * @private
-     */
-    _getLoadSizeCounter() {
-        const me = this;
-
-        return me.loadSizeCounter;
-    }
-
-    /**
-     *
-     * @param value
-     * @private
-     */
-    _setMemoryLoadPerSec(value) {
-        const me = this;
-
-        me.memoryLoadPerSec = value;
-    }
-
-    /**
-     * Initialize load analyzer interval
-     * @event poll
-     * @private
-     */
-    _initLoadAnalyzerInterval() {
-        const me = this;
-        const previousLoadSize = new CircularBuffer(Config.LOAD_ANALYZER_FILTER_DEPTH);
-        let activeLoadStep = 0;
-
-        me.loadAnalyzerHandler = setInterval(() => {
-            let averageLoadSize, currentStep;
-            const currentLoadSize = me._getLoadSizeCounter() /  Config.LOAD_ANALYZER_INTERVAL_SEC;
-            const loadBalanceStepB = Config.LOAD_BALANCE_STEP_KB * Utils.B_IN_KB;
-
-            previousLoadSize.enq(currentLoadSize);
-            averageLoadSize = Math.floor(previousLoadSize
-                .toarray()
-                .reduce((prev, value) => prev + value, 0) / Config.LOAD_ANALYZER_FILTER_DEPTH);
-
-
-            me._resetLoadSizeCounter();
-            me._setMemoryLoadPerSec(currentLoadSize);
-
-            currentStep = Math.floor(averageLoadSize / loadBalanceStepB);
-
-            if (activeLoadStep !== currentStep && (me.length === 0 || activeLoadStep < currentStep)) {
-                activeLoadStep = currentStep;
-                me.emit(MessageBuffer.LOAD_CHANGED_EVENT, averageLoadSize, activeLoadStep);
-            }
-        }, Config.LOAD_ANALYZER_INTERVAL_SEC * Utils.MS_IN_S);
+        }, 0);
     }
 }
 
