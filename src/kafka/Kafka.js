@@ -486,8 +486,8 @@ class Kafka extends EventEmitter {
     setInputLoad(batchSize, timeInterval) {
         const me = this;
 
-        me.defaultProducerConfig.batch.maxWait = timeInterval;
-        me.defaultProducerConfig.batch.size = batchSize;
+        // me.defaultProducerConfig.batch.maxWait = timeInterval;
+        // me.defaultProducerConfig.batch.size = batchSize;
 
 
         debug(`New producer batch configuration: Batch size: ${batchSize}, Wait time: ${timeInterval}`);

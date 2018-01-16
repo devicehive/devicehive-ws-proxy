@@ -56,20 +56,16 @@ class MessageBuffer extends EventEmitter {
         me.loadAnalyzerHandler = null;
         me.loadSizeCounter = 0;
         me.memoryLoadPerSec = 0;
-        me.bufferPollingInterval = Config.BUFFER_POLLING_INTERVAL_MS;
-        me.maxBatchSize = 0;
+        me.maxBatchSize = 100000;
 
         debug(`Maximum size of message buffer: ${Config.MAX_SIZE_MB} Mb`);
-        debug(`Polling interval: ${Config.BUFFER_POLLING_INTERVAL_MS} ms`);
-        debug(`Message amount per polling cycle: ${Config.BUFFER_POLLING_MESSAGE_AMOUNT}`);
 
         me.on(MessageBuffer.LOAD_CHANGED_EVENT, (loadSize, loadStep) => {
-            me.bufferPollingInterval = 50;// MessageBuffer.calculatePollingInterval(loadSize, loadStep);
-            me.maxBatchSize = 0; //MessageBuffer.calculateMaxBatchSize(loadSize, me.bufferPollingInterval);
+            me.maxBatchSize = loadSize / 10; //MessageBuffer.calculateMaxBatchSize(loadSize, me.bufferPollingInterval);
 
             me.restartPolling();
 
-            debug(`New polling metrics: Polling Interval: ${me.bufferPollingInterval}, Maximum Batch Size: ${me.maxBatchSize}`);
+            debug(`New polling metrics: Maximum Batch Size: ${me.maxBatchSize}`);
         });
 
         me._initLoadAnalyzerInterval();
@@ -157,31 +153,16 @@ class MessageBuffer extends EventEmitter {
      * @param maxBatchSize
      * @returns {Array}
      */
-    getBatch(maxBatchSize) {
+    getBatch(maxBatchSize = 100000) {
         const me = this;
         const result = [];
         let batchSize = 0;
 
-        if (maxBatchSize !== 0) {
-            while (batchSize < maxBatchSize) {
-                if (me.length === 0) {
-                    break;
-                } else {
-                    const message = me.shift();
+        while (me.length && (batchSize < maxBatchSize)) {
+            const message = me.shift();
 
-                    batchSize += message.size;
-                    result.push(message);
-                }
-            }
-        } else {
-            if (me.length > 0) {
-                const counter = me.length < Config.BUFFER_POLLING_MESSAGE_AMOUNT ?
-                    me.length : Config.BUFFER_POLLING_MESSAGE_AMOUNT;
-
-                for (let messageCounter = 0; messageCounter < counter; messageCounter++) {
-                    result.push(me.shift());
-                }
-            }
+            batchSize += message.size;
+            result.push(message);
         }
 
         return result;
@@ -331,7 +312,7 @@ class MessageBuffer extends EventEmitter {
             } else {
                 me.stopPolling();
             }
-        }, me.bufferPollingInterval);
+        }, 10);
     }
 
     /**

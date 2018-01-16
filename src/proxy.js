@@ -72,7 +72,11 @@ internalCommunicatorFacade.on(InternalCommunicatorFacade.NOT_AVAILABLE_EVENT, ()
     messageBuffer.stopPolling()
 });
 
-messageBuffer.on(MessageBuffer.POLL_EVENT, (messages) => messages.forEach((message) => processMessage(message)));
+messageBuffer.on(MessageBuffer.POLL_EVENT, (messages) => {
+    for (let messageCount = 0; messageCount < messages.length; messageCount++) {
+        processMessage(messages[messageCount]);
+    }
+});
 
 messageBuffer.on(MessageBuffer.LOAD_CHANGED_EVENT, (bytesPerSec, loadLevel) => {
     const bufferPollingInterval = MessageBuffer.calculatePollingInterval(bytesPerSec, loadLevel);
@@ -399,8 +403,8 @@ function initProcessExitHandlers() {
     }
 
     process.on('exit', exitHandler);
-    process.on('SIGINT', exitHandler);
-    process.on('SIGUSR1', exitHandler);
-    process.on('SIGUSR2', exitHandler);
+    // process.on('SIGINT', exitHandler);
+    // process.on('SIGUSR1', exitHandler);
+    // process.on('SIGUSR2', exitHandler);
     process.on('uncaughtException', exitHandler);
 }
