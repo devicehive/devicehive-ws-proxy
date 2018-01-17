@@ -248,7 +248,7 @@ class Kafka extends EventEmitter {
             .then(() => me.getConsumer())
             .then((consumer) => Utils.isDefined(subscriptionGroup) ?
                 Promise.all(Array.from(topicsToSubscribe).map(topic => {
-                    const groupConsumer = new NoKafka.GroupConsumer(Kafka._getConsumerConfig(me.clientUUID, subscriptionGroup));
+                    const groupConsumer = new NoKafka.GroupConsumer(me._getConsumerConfig(me.clientUUID, subscriptionGroup));
 
                     me.groupConsumersMap.set(
                         Kafka._generateSubscriptionGroupKey(subscriberId, subscriptionGroup, topic), groupConsumer);
