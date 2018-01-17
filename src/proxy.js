@@ -62,12 +62,12 @@ internalCommunicatorFacade.on(InternalCommunicatorFacade.MESSAGE_EVENT, (clientI
     }).toString());
 });
 
-internalCommunicatorFacade.on(InternalCommunicatorFacade.AVAILABLE_EVENT, () => messageBuffer.startPolling());
-internalCommunicatorFacade.on(InternalCommunicatorFacade.NOT_AVAILABLE_EVENT, () => messageBuffer.stopPolling());
+internalCommunicatorFacade.on(InternalCommunicatorFacade.AVAILABLE_EVENT, () => messageBuffer.enablePolling());
+internalCommunicatorFacade.on(InternalCommunicatorFacade.NOT_AVAILABLE_EVENT, () => messageBuffer.disablePolling());
 
-messageBuffer.on(MessageBuffer.POLL_EVENT, () => {
-    if (internalCommunicatorFacade.isAvailable()) {
-        processMessage(messageBuffer.shift());
+messageBuffer.on(MessageBuffer.POLL_EVENT, (messages) => {
+    for (let messageCount = 0; messageCount < messages.length; messageCount++) {
+        processMessage(messages[messageCount]);
     }
 });
 
@@ -387,8 +387,5 @@ function initProcessExitHandlers() {
     }
 
     process.on('exit', exitHandler);
-    process.on('SIGINT', exitHandler);
-    process.on('SIGUSR1', exitHandler);
-    process.on('SIGUSR2', exitHandler);
     process.on('uncaughtException', exitHandler);
 }

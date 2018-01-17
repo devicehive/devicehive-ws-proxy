@@ -4,6 +4,8 @@ const Utils = require(`../../utils`);
 const NoKafka = require(`no-kafka`);
 const uuid = require(`uuid/v1`);
 const debug = require(`debug`)(`kafka`);
+const sizeof = require('object-sizeof');
+
 
 
 /**
@@ -44,18 +46,13 @@ class Kafka extends EventEmitter {
      * @returns {{clientId: string, connectionString: *, logger: {logLevel: *}, batch: {maxWait: *, size: *}}}
      * @private
      */
-    static _getProducerConfig(clientId) {
-        return {
-            clientId: `${KafkaConfig.KAFKA_CLIENT_ID}-${clientId}`,
-            connectionString: KafkaConfig.KAFKA_HOSTS,
-            logger: {
-                logLevel: KafkaConfig.LOGGER_LEVEL
-            },
-            batch: {
-                maxWait: KafkaConfig.PRODUCER_MAX_WAIT_TIME,
-                size: KafkaConfig.PRODUCER_SIZE
-            }
-        };
+    _getProducerConfig(clientId) {
+        const me = this;
+        const result = Object.assign({}, me.defaultProducerConfig);
+
+        result.clientId = `${KafkaConfig.KAFKA_CLIENT_ID}-${clientId}`;
+
+        return result;
     }
 
     /**
@@ -65,18 +62,14 @@ class Kafka extends EventEmitter {
      * @returns {{clientId: string, connectionString: *, groupId: string, logger: {logLevel: *}, idleTimeout: *, maxWaitTime: *, maxBytes: *}}
      * @private
      */
-    static _getConsumerConfig(clientId, groupId) {
-        return {
-            clientId: `${KafkaConfig.KAFKA_CLIENT_ID}-${clientId}`,
-            connectionString: KafkaConfig.KAFKA_HOSTS,
-            groupId: `${KafkaConfig.CONSUMER_GROUP_ID_PREFIX}-${groupId || clientId}`,
-            logger: {
-                logLevel: KafkaConfig.LOGGER_LEVEL
-            },
-            idleTimeout: KafkaConfig.CONSUMER_IDLE_TIMEOUT,
-            maxWaitTime: KafkaConfig.CONSUMER_MAX_WAIT_TIME,
-            maxBytes: KafkaConfig.CONSUMER_MAX_BYTES
-        };
+    _getConsumerConfig(clientId, groupId) {
+        const me = this;
+        const result = Object.assign({}, me.defaultConsumerConfig);
+
+        result.clientId = `${KafkaConfig.KAFKA_CLIENT_ID}-${clientId}`;
+        result.groupId = `${KafkaConfig.CONSUMER_GROUP_ID_PREFIX}-${groupId || clientId}`;
+
+        return result;
     }
 
     /**
@@ -88,14 +81,32 @@ class Kafka extends EventEmitter {
         const me = this;
 
         me.clientUUID = uuid();
+        me.defaultProducerConfig = {
+            clientId: `${KafkaConfig.KAFKA_CLIENT_ID}-${me.clientUUID}`,
+            connectionString: KafkaConfig.KAFKA_HOSTS,
+            logger: {
+                logLevel: KafkaConfig.LOGGER_LEVEL
+            }
+        };
+        me.defaultConsumerConfig = {
+            clientId: `${KafkaConfig.KAFKA_CLIENT_ID}-${me.clientUUID}`,
+            connectionString: KafkaConfig.KAFKA_HOSTS,
+            groupId: `${KafkaConfig.CONSUMER_GROUP_ID_PREFIX}-${me.clientUUID}`,
+            logger: {
+                logLevel: KafkaConfig.LOGGER_LEVEL
+            },
+            idleTimeout: KafkaConfig.CONSUMER_IDLE_TIMEOUT,
+            maxWaitTime: KafkaConfig.CONSUMER_MAX_WAIT_TIME,
+            maxBytes: KafkaConfig.CONSUMER_MAX_BYTES
+        };
         me.isProducerReady = false;
         me.isConsumerReady = false;
         me.available = true;
         me.subscriptionMap = new Map();
         me.subscriptionGroupMap = new Map();
         me.groupConsumersMap = new Map();
-        me.producer = new NoKafka.Producer(Kafka._getProducerConfig(me.clientUUID));
-        me.consumer = new NoKafka.SimpleConsumer(Kafka._getConsumerConfig(me.clientUUID));
+        me.producer = new NoKafka.Producer(me._getProducerConfig(me.clientUUID));
+        me.consumer = new NoKafka.SimpleConsumer(me._getConsumerConfig(me.clientUUID));
 
         debug(`Started trying connect to server`);
 
@@ -128,6 +139,8 @@ class Kafka extends EventEmitter {
         me._topicRequestEmitter = new EventEmitter();
 
         me._initMetadataPoller();
+
+        me.inputThroughputWatcher = me.createThroughputWatcher(1000);
     }
 
     /**
@@ -338,9 +351,20 @@ class Kafka extends EventEmitter {
      */
     send(payload) {
         const me = this;
+        let throughput, isThroughputSmall;
+
+        me.inputThroughputWatcher.calculate(payload);
+        throughput = me.inputThroughputWatcher.getThroughput();
+        isThroughputSmall = throughput < KafkaConfig.PRODUCER_MINIMAL_BATCHING_THROUGHPUT_PER_SEC_B;
 
         return me.getProducer()
-            .then((producer) => producer.send(payload));
+            .then((producer) => producer.send(payload, {
+                batch: {
+                    size: isThroughputSmall ? 0 : throughput / 10,
+                    maxWait: isThroughputSmall ?
+                        0 : (throughput / KafkaConfig.PRODUCER_MINIMAL_BATCHING_THROUGHPUT_PER_SEC_B) * 100
+                }
+            }));
     }
 
     /**
@@ -413,6 +437,10 @@ class Kafka extends EventEmitter {
         });
     }
 
+    /**
+     *
+     * @private
+     */
     _initMetadataPoller() {
         const me = this;
 
@@ -435,6 +463,12 @@ class Kafka extends EventEmitter {
         }, KafkaConfig.METADATA_POLLING_INTERVAL_MS);
     }
 
+    /**
+     *
+     * @param topicName
+     * @returns {Promise<any>}
+     * @private
+     */
     _waitForTopic(topicName) {
         const me = this;
 
@@ -448,6 +482,32 @@ class Kafka extends EventEmitter {
                 });
             }
         });
+    }
+
+    createThroughputWatcher(intervalMs) {
+        let throughput = 0;
+        let totalSize = 0;
+        let prevTimeStamp = 0;
+
+        return {
+            calculate (payload) {
+                totalSize += sizeof(payload);
+
+                const timeStamp = new Date().getTime();
+
+                if ((timeStamp - prevTimeStamp) > intervalMs) {
+                    if (prevTimeStamp !== 0) {
+                        throughput = Math.floor(totalSize / ((timeStamp - prevTimeStamp) / intervalMs));
+                    }
+                    totalSize = 0;
+                    prevTimeStamp = timeStamp;
+                }
+            },
+
+            getThroughput () {
+                return throughput;
+            }
+        }
     }
 }
 
