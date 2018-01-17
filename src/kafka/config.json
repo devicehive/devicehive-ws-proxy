@@ -1,10 +1,12 @@
 {
     "KAFKA_HOSTS": "localhost:9092",
     "KAFKA_CLIENT_ID": "ws-proxy-kafka-client",
-    "CONSUMER_GROUP_ID": "ws-proxy-consumer-group",
+    "CONSUMER_GROUP_ID_PREFIX": "ws-proxy-consumer-group",
     "LOGGER_LEVEL": 0,
-    "METADATA_POLLING_INTERVAL_MS": 30,
+    "METADATA_POLLING_INTERVAL_MS": 1000,
     "CONSUMER_IDLE_TIMEOUT": 0,
     "CONSUMER_MAX_WAIT_TIME": 0,
-    "PRODUCER_MAX_WAIT_TIME": 0
+    "CONSUMER_MAX_BYTES": 1000000,
+    "PRODUCER_MAX_WAIT_TIME": 0,
+    "PRODUCER_SIZE": 0
 }

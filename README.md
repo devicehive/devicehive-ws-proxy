@@ -97,6 +97,7 @@ All messages are `JSON` based. Generic message structure looks like this:
 | s     | `Int`           | Status, returned by the server, 0 if OK. |
 | p     | `Object`        | Payload object |
 
+
 Server can receive a list of messages in one batch.
 
 ### Ack message:
@@ -183,7 +184,10 @@ Request message:
 {
     "t": "topic",
     "a": "subscribe",
-    "p": { "t": ["topic1", "topic2"] }
+    "p": { 
+        "sg": "subscriptionGroup",
+        "t": ["topic1", "topic2"] 
+    }
 }
 ```
 
@@ -192,7 +196,7 @@ Response message:
 {
     "t": "topic",
     "a": "subscribe",
-    "p": { "t": ["topic1", "topic2"] },
+    "p": { "sg": "subscriptionGroup", "t": ["topic1", "topic2"] },
     "s": 0
 }
 ```

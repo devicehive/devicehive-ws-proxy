@@ -239,7 +239,7 @@ function processTopicListAction(clientId, message) {
  */
 function processTopicSubscribeAction(clientId, message) {
     if (Array.isArray(message.payload.topicList)) {
-        internalCommunicatorFacade.subscribe(clientId, message.payload.topicList)
+        internalCommunicatorFacade.subscribe(clientId, message.payload.subscriptionGroup, message.payload.topicList)
             .then((topicSubscriptionList) => {
                 webSocketServer.send(clientId, new Message({
                     id: message.id,
@@ -247,6 +247,7 @@ function processTopicSubscribeAction(clientId, message) {
                     action: MessageUtils.SUBSCRIBE_ACTION,
                     status: MessageUtils.SUCCESS_STATUS,
                     payload: {
+                        subscriptionGroup: message.payload.subscriptionGroup,
                         topicList: topicSubscriptionList
                     }
                 }).toString());
