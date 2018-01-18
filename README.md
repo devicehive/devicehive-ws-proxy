@@ -13,27 +13,35 @@ allowing you to communicate with the next message brokers through WebSockets:
 
 - **_WEB_SOCKET_SERVER_HOST_** - WebSocket server host address (default: "localhost");  
 - **_WEB_SOCKET_SERVER_PORT_** - WebSocket server port to listen (default: 3000);  
-- **_WEB_SOCKET_PING_INTERVAL_S_** - Time interval in seconds between ping messages (default: 30);  
+- **_WEB_SOCKET_PING_INTERVAL_SEC_** - Time interval in seconds between ping messages (default: 30);  
 - **_ACK_ON_EVERY_MESSAGE_ENABLED_** - Enable/disable acknowledgment for every received message (default: false);  
-- **_ENABLE_PLUGIN_MANGER_** - Enable plugin manager (default: false);  
+- **_ENABLE_PLUGIN_MANAGER_** - Enable plugin manager (default: false);  
 - **_COMMUNICATOR_TYPE_** - Message broker that will be used internally (default: "kafka");  
 - **_APP_LOG_LEVEL_** - Proxy logger level: debug, info, warn, error (default: "info");  
 
 Each configuration field can be overridden with corresponding environmental variable with "PROXY" prefix, for example:
 
     PROXY.WEB_SOCKET_SERVER_PORT=6000
-    
+
+Prefix separator can be overridden by **_ENVSEPARATOR_** environmental variable. Example:
+
+    ENVSEPARATOR=_
+    PROXY_WEB_SOCKET_SERVER_PORT=6000
+        
 ### Message Buffer configuration
     [path-to-proxy-project]/src/messageBuffer/config.json    
 
-- **_BUFFER_POLLING_INTERVAL_MS_** - Message buffer polling interval in ms (default: 50);  
-- **_BUFFER_POLLING_MESSAGE_AMOUNT_** - Amount of messages that will be shifted from message buffer on each buffer polling (default: 500);  
 - **_MAX_SIZE_MB_** - Maximum Message Buffer size in MB (default: 128);  
 
 Each configuration field can be overridden with corresponding environmental variable with "MESSAGE_BUFFER" prefix, for example:
 
-    MESSAGE_BUFFER.BUFFER_POLLING_INTERVAL_MS=60
-    
+    MESSAGE_BUFFER.MAX_SIZE_MB=256
+
+Prefix separator can be overridden by **_ENVSEPARATOR_** environmental variable. Example:
+
+    ENVSEPARATOR=_
+    MESSAGE_BUFFER_MAX_SIZE_MB=256
+        
 ### Plugin Manager configuration
     [path-to-proxy-project]/src/pluginManager/config.json 
 
@@ -44,6 +52,11 @@ Each configuration field can be overridden with corresponding environmental vari
 
     PLUGIN_MANAGER.AUTH_SERVICE_ENDPOINT=http://localhost:9090/dh/rest
 
+Prefix separator can be overridden by **_ENVSEPARATOR_** environmental variable. Example:
+
+    ENVSEPARATOR=_
+    PLUGIN_MANAGER_AUTH_SERVICE_ENDPOINT=http://localhost:9090/dh/rest
+    
 ## Message Brokers
 ### Kafka
     [path-to-proxy-project]/src/kafka/config.json   
@@ -52,11 +65,21 @@ Each configuration field can be overridden with corresponding environmental vari
 - **_KAFKA_CLIENT_ID_** - Kafka client name prefix (default: "ws-proxy-kafka-client");  
 - **_CONSUMER_GROUP_ID_** - Kafka consumer group prefix (default: "ws-proxy-consumer-group");  
 - **_LOGGER_LEVEL_** Kafka logger level (default: 0);  
+- **_METADATA_POLLING_INTERVAL_MS_** Kafka metadata polling interval (default: 1000);  
+- **_PRODUCER_MINIMAL_BATCHING_THROUGHPUT_PER_SEC_B_** Maximum throughput on producer side to work without batching (default: 1000);  
+- **_CONSUMER_IDLE_TIMEOUT_** Timeout between consumer fetching requests (default: 0);  
+- **_CONSUMER_MAX_WAIT_TIME_** Maximum wait time to collect batch with size of **_CONSUMER_MAX_BYTES_** (default: 0);  
+- **_CONSUMER_MAX_BYTES_** Maximum batch size on consumer side in bytes (default: 1000000);  
     
 Each configuration field can be overridden with corresponding environmental variable with "KAFKA" prefix, for example:
 
     KAFKA.KAFKA_HOSTS=localhost:9094
 
+Prefix separator can be overridden by **_ENVSEPARATOR_** environmental variable. Example:
+
+    ENVSEPARATOR=_
+    KAFKA_KAFKA_HOSTS=localhost:9094
+    
 ## Proxy modules logging
 Through the "DEBUG" environment variable you are able to specify next modules loggers:
 
@@ -95,6 +118,7 @@ All messages are `JSON` based. Generic message structure looks like this:
 | a     | `String`        | Action: ["create","list","subscribe","unsubscribe","authenticate" "ack"]|
 | s     | `Int`           | Status, returned by the server, 0 if OK. |
 | p     | `Object`        | Payload object |
+
 
 Server can receive a list of messages in one batch.
 
@@ -182,7 +206,10 @@ Request message:
 {
     "t": "topic",
     "a": "subscribe",
-    "p": { "t": ["topic1", "topic2"] }
+    "p": { 
+        "sg": "subscriptionGroup",
+        "t": ["topic1", "topic2"] 
+    }
 }
 ```
 
@@ -191,7 +218,7 @@ Response message:
 {
     "t": "topic",
     "a": "subscribe",
-    "p": { "t": ["topic1", "topic2"] },
+    "p": { "sg": "subscriptionGroup", "t": ["topic1", "topic2"] },
     "s": 0
 }
 ```
@@ -205,6 +232,8 @@ Error message:
     "s": 1 
 }
 ```
+
+Where **_subscriptionGroup_** - group of consumers where messages apportions via balancing (RoundRobin) logic
 
 ### Unsubscribe
 Request message:

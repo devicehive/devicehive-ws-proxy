@@ -12,47 +12,49 @@ services:
     links:
       - "zookeeper"
     restart: unless-stopped
+    ports:
+      - "9092:9092"
     environment:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
     networks:
       - shared
-  proxynginx:
-    build: ./nginx
-    container_name: proxynginx
-    links:
-      - internalproxy:internalproxy
-      - externalproxy:externalproxy
-    networks:
-      - shared
-    ports:
-      - "3000:3000"
-      - "3001:3001"
-  internalproxy:
-    build: .
-    container_name: internalproxy
-    environment:
-      KAFKA.KAFKA_HOSTS: "kafka:9092"
-      PLUGIN_MANAGER.AUTH_SERVICE_ENDPOINT: "http://192.168.160.107:8090/dh/rest"
-      PLUGIN_MANAGER.PLUGIN_MANAGEMENT_SERVICE_ENDPOINT: "http://192.168.160.107:8110/dh/rest"
-      PROXY.WEB_SOCKET_SERVER_HOST: "internalproxy"
-      PROXY.ENABLE_PLUGIN_MANGER: "false"
-      DEBUG: "kafka,pluginmanager"
-    networks:
-      - shared
-  externalproxy:
-    build: .
-    container_name: externalproxy
-    environment:
-      KAFKA.KAFKA_HOSTS: "kafka:9092"
-      PLUGIN_MANAGER.AUTH_SERVICE_ENDPOINT: "http://192.168.160.107:8090/dh/rest"
-      PLUGIN_MANAGER.PLUGIN_MANAGEMENT_SERVICE_ENDPOINT: "http://192.168.160.107:8110/dh/rest"
-      PROXY.WEB_SOCKET_SERVER_HOST: "externalproxy"
-      PROXY.ENABLE_PLUGIN_MANGER: "true"
-      DEBUG: "kafka,pluginmanager"
-    networks:
-      - shared
+#  proxynginx:
+#    build: ./nginx
+#    container_name: proxynginx
+#    links:
+#      - internalproxy:internalproxy
+#      - externalproxy:externalproxy
+#    networks:
+#      - shared
+#    ports:
+#      - "3000:3000"
+#      - "3001:3001"
+#  internalproxy:
+#    build: .
+#    container_name: internalproxy
+#    environment:
+#      KAFKA.KAFKA_HOSTS: "kafka:9092"
+#      PLUGIN_MANAGER.AUTH_SERVICE_ENDPOINT: "http://192.168.160.107:8090/dh/rest"
+#      PLUGIN_MANAGER.PLUGIN_MANAGEMENT_SERVICE_ENDPOINT: "http://192.168.160.107:8110/dh/rest"
+#      PROXY.WEB_SOCKET_SERVER_HOST: "internalproxy"
+#      PROXY.ENABLE_PLUGIN_MANAGER: "false"
+#      DEBUG: "kafka,pluginmanager"
+#    networks:
+#      - shared
+#  externalproxy:
+#    build: .
+#    container_name: externalproxy
+#    environment:
+#      KAFKA.KAFKA_HOSTS: "kafka:9092"
+#      PLUGIN_MANAGER.AUTH_SERVICE_ENDPOINT: "http://192.168.160.107:8090/dh/rest"
+#      PLUGIN_MANAGER.PLUGIN_MANAGEMENT_SERVICE_ENDPOINT: "http://192.168.160.107:8110/dh/rest"
+#      PROXY.WEB_SOCKET_SERVER_HOST: "externalproxy"
+#      PROXY.ENABLE_PLUGIN_MANAGER: "true"
+#      DEBUG: "kafka,pluginmanager"
+#    networks:
+#      - shared
 networks:
   shared:
     driver: bridge

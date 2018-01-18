@@ -10,7 +10,7 @@ const ApplicationLogger = require(`./ApplicationLogger`);
 
 const logger = new ApplicationLogger(CONST.APPLICATION_TAG, Config.APP_LOG_LEVEL);
 const messageBuffer = new MessageBuffer();
-const pluginManager = new PluginManager(!Config.ENABLE_PLUGIN_MANGER);
+const pluginManager = new PluginManager(!Config.ENABLE_PLUGIN_MANAGER);
 const internalCommunicatorFacade = new InternalCommunicatorFacade(Config.COMMUNICATOR_TYPE);
 const webSocketServer = new WebSocketServer();
 
@@ -62,12 +62,12 @@ internalCommunicatorFacade.on(InternalCommunicatorFacade.MESSAGE_EVENT, (clientI
     }).toString());
 });
 
-internalCommunicatorFacade.on(InternalCommunicatorFacade.AVAILABLE_EVENT, () => messageBuffer.startPolling());
-internalCommunicatorFacade.on(InternalCommunicatorFacade.NOT_AVAILABLE_EVENT, () => messageBuffer.stopPolling());
+internalCommunicatorFacade.on(InternalCommunicatorFacade.AVAILABLE_EVENT, () => messageBuffer.enablePolling());
+internalCommunicatorFacade.on(InternalCommunicatorFacade.NOT_AVAILABLE_EVENT, () => messageBuffer.disablePolling());
 
-messageBuffer.on(MessageBuffer.POLL_EVENT, () => {
-    if (internalCommunicatorFacade.isAvailable()) {
-        processMessage(messageBuffer.shift());
+messageBuffer.on(MessageBuffer.POLL_EVENT, (messages) => {
+    for (let messageCount = 0; messageCount < messages.length; messageCount++) {
+        processMessage(messages[messageCount]);
     }
 });
 
@@ -239,7 +239,7 @@ function processTopicListAction(clientId, message) {
  */
 function processTopicSubscribeAction(clientId, message) {
     if (Array.isArray(message.payload.topicList)) {
-        internalCommunicatorFacade.subscribe(clientId, message.payload.topicList)
+        internalCommunicatorFacade.subscribe(clientId, message.payload.subscriptionGroup, message.payload.topicList)
             .then((topicSubscriptionList) => {
                 webSocketServer.send(clientId, new Message({
                     id: message.id,
@@ -247,6 +247,7 @@ function processTopicSubscribeAction(clientId, message) {
                     action: MessageUtils.SUBSCRIBE_ACTION,
                     status: MessageUtils.SUCCESS_STATUS,
                     payload: {
+                        subscriptionGroup: message.payload.subscriptionGroup,
                         topicList: topicSubscriptionList
                     }
                 }).toString());
@@ -386,8 +387,5 @@ function initProcessExitHandlers() {
     }
 
     process.on('exit', exitHandler);
-    process.on('SIGINT', exitHandler);
-    process.on('SIGUSR1', exitHandler);
-    process.on('SIGUSR2', exitHandler);
     process.on('uncaughtException', exitHandler);
 }

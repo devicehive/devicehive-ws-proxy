@@ -25,11 +25,11 @@ class MessageBuffer extends EventEmitter {
         me.fifo = new FIFO();
         me.maxDataSizeB = me.freeMemory = Config.MAX_SIZE_MB * Utils.B_IN_MB;
         me.dataSize = 0;
-        me.pollingIntervalHandler = null;
+        me._pollingIntervalHandler = null;
+        me._isPollingInStop = true;
+        me._enablePolling = false;
 
         debug(`Maximum size of message buffer: ${Config.MAX_SIZE_MB} Mb`);
-        debug(`Polling interval: ${Config.BUFFER_POLLING_INTERVAL_MS} ms`);
-        debug(`Message amount per polling cycle: ${Config.BUFFER_POLLING_MESSAGE_AMOUNT}`);
     }
 
     /**
@@ -50,14 +50,20 @@ class MessageBuffer extends EventEmitter {
      */
     push(message) {
         const me = this;
-        const sizeOfMessage = sizeof(message);
+        const sizeOfMessage = sizeof(message.message);
 
         if (me.getFreeMemory() < sizeOfMessage) {
             throw new FullMessageBufferError(message.message);
         }
 
+        message.size = sizeOfMessage;
+
         me.fifo.push(message);
         me._incrementDataSize(sizeOfMessage);
+
+        if (me._isPollingInStop === true && me._enablePolling === true) {
+            me.startPolling();
+        }
 
         debug(`Pushed new message, length: ${me.length}`);
     }
@@ -70,7 +76,7 @@ class MessageBuffer extends EventEmitter {
      */
     unshift(message) {
         const me = this;
-        const sizeOfMessage = sizeof(message);
+        const sizeOfMessage = sizeof(message.message);
 
         if (me.getFreeMemory() < sizeOfMessage) {
             throw new FullMessageBufferError(message.message);
@@ -78,6 +84,10 @@ class MessageBuffer extends EventEmitter {
 
         me.fifo.unshift(message);
         me._incrementDataSize(sizeOfMessage);
+
+        if (me._isPollingInStop === true && me._enablePolling === true) {
+            me.startPolling();
+        }
 
         debug(`Unshifted new message, length: ${me.length}`);
     }
@@ -97,6 +107,21 @@ class MessageBuffer extends EventEmitter {
         debug(`Shifted message, length: ${me.length}`);
 
         return message;
+    }
+
+    /**
+     *
+     * @returns {Array}
+     */
+    getBatch() {
+        const me = this;
+        const result = [];
+
+        while (me.length) {
+            result.push(me.shift());
+        }
+
+        return result;
     }
 
     /**
@@ -149,7 +174,10 @@ class MessageBuffer extends EventEmitter {
     startPolling() {
        const me = this;
 
-       me.__initPollingInterval();
+       me._initPollingInterval();
+       me._isPollingInStop = false;
+
+        debug(`Polling started`);
     }
 
     /**
@@ -158,7 +186,38 @@ class MessageBuffer extends EventEmitter {
     stopPolling() {
         const me = this;
 
-        clearInterval(me.pollingIntervalHandler);
+        clearInterval(me._pollingIntervalHandler);
+        me._isPollingInStop = true;
+
+        debug(`Polling stopped`);
+    }
+
+    /**
+     * Restart buffer polling
+     */
+    restartPolling() {
+        const me = this;
+
+        me.stopPolling();
+        me.startPolling();
+    }
+
+    /**
+     *
+     */
+    enablePolling() {
+        const me = this;
+
+        me._enablePolling = true;
+    }
+
+    /**
+     *
+     */
+    disablePolling() {
+        const me = this;
+
+        me._enablePolling = false;
     }
 
     /**
@@ -171,7 +230,6 @@ class MessageBuffer extends EventEmitter {
 
         me.dataSize += bytesAmount;
         me._checkMemoryUsage();
-
     }
 
     /**
@@ -212,19 +270,16 @@ class MessageBuffer extends EventEmitter {
      * @event poll
      * @private
      */
-    __initPollingInterval() {
+    _initPollingInterval() {
         const me = this;
 
-        me.pollingIntervalHandler = setInterval(() => {
+        me._pollingIntervalHandler = setInterval(() => {
             if (me.length > 0) {
-                const counter = me.length < Config.BUFFER_POLLING_MESSAGE_AMOUNT ?
-                    me.length : Config.BUFFER_POLLING_MESSAGE_AMOUNT;
-
-                for (let messageCounter = 0; messageCounter < counter; messageCounter++) {
-                    me.emit(MessageBuffer.POLL_EVENT);
-                }
+                me.emit(MessageBuffer.POLL_EVENT, me.getBatch());
+            } else {
+                me.stopPolling();
             }
-        }, Config.BUFFER_POLLING_INTERVAL_MS);
+        }, 0);
     }
 }
 

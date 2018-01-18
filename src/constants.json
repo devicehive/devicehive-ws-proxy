@@ -1,4 +1,5 @@
 {
+    "DEVELOPMENT": "development",
     "APPLICATION_TAG": "PROXY",
     "AVAILABLE_STATUS": "Available",
     "NOT_AVAILABLE_STATUS": "Not available"

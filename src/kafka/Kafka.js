@@ -2,9 +2,10 @@ const KafkaConfig = require(`../../config`).kafka;
 const EventEmitter = require(`events`);
 const Utils = require(`../../utils`);
 const NoKafka = require(`no-kafka`);
-const Consumer = require(`./Consumer`);
 const uuid = require(`uuid/v1`);
 const debug = require(`debug`)(`kafka`);
+const sizeof = require('object-sizeof');
+
 
 
 /**
@@ -26,7 +27,50 @@ class Kafka extends EventEmitter {
     static get NOT_AVAILABLE_EVENT() { return `notAvailable`; }
 
     static get INTERNAL_TOPIC_PREFIX() { return `__` };
-    static get HEALTH_TOPIC() { return `__health__` };
+
+    /**
+     * Generate subscription group identification key
+     * @param subscriber
+     * @param group
+     * @param topic
+     * @returns {string}
+     * @private
+     */
+    static _generateSubscriptionGroupKey(subscriber, group,  topic) {
+        return `${subscriber}:${group}:${topic}`;
+    }
+
+    /**
+     * Returns Kafka producer config
+     * @param clientId
+     * @returns {{clientId: string, connectionString: *, logger: {logLevel: *}, batch: {maxWait: *, size: *}}}
+     * @private
+     */
+    _getProducerConfig(clientId) {
+        const me = this;
+        const result = Object.assign({}, me.defaultProducerConfig);
+
+        result.clientId = `${KafkaConfig.KAFKA_CLIENT_ID}-${clientId}`;
+
+        return result;
+    }
+
+    /**
+     * Returns Kafka consumer config
+     * @param clientId
+     * @param groupId
+     * @returns {{clientId: string, connectionString: *, groupId: string, logger: {logLevel: *}, idleTimeout: *, maxWaitTime: *, maxBytes: *}}
+     * @private
+     */
+    _getConsumerConfig(clientId, groupId) {
+        const me = this;
+        const result = Object.assign({}, me.defaultConsumerConfig);
+
+        result.clientId = `${KafkaConfig.KAFKA_CLIENT_ID}-${clientId}`;
+        result.groupId = `${KafkaConfig.CONSUMER_GROUP_ID_PREFIX}-${groupId || clientId}`;
+
+        return result;
+    }
 
     /**
      * Creates new Kafka
@@ -35,32 +79,38 @@ class Kafka extends EventEmitter {
         super();
 
         const me = this;
-        const clientUUID = uuid();
 
+        me.clientUUID = uuid();
+        me.defaultProducerConfig = {
+            clientId: `${KafkaConfig.KAFKA_CLIENT_ID}-${me.clientUUID}`,
+            connectionString: KafkaConfig.KAFKA_HOSTS,
+            logger: {
+                logLevel: KafkaConfig.LOGGER_LEVEL
+            }
+        };
+        me.defaultConsumerConfig = {
+            clientId: `${KafkaConfig.KAFKA_CLIENT_ID}-${me.clientUUID}`,
+            connectionString: KafkaConfig.KAFKA_HOSTS,
+            groupId: `${KafkaConfig.CONSUMER_GROUP_ID_PREFIX}-${me.clientUUID}`,
+            logger: {
+                logLevel: KafkaConfig.LOGGER_LEVEL
+            },
+            idleTimeout: KafkaConfig.CONSUMER_IDLE_TIMEOUT,
+            maxWaitTime: KafkaConfig.CONSUMER_MAX_WAIT_TIME,
+            maxBytes: KafkaConfig.CONSUMER_MAX_BYTES
+        };
         me.isProducerReady = false;
         me.isConsumerReady = false;
         me.available = true;
         me.subscriptionMap = new Map();
-        me.producer = new NoKafka.Producer({
-            clientId: `${KafkaConfig.KAFKA_CLIENT_ID}-${clientUUID}`,
-            connectionString: KafkaConfig.KAFKA_HOSTS,
-            logger: {
-                logLevel: KafkaConfig.LOGGER_LEVEL
-            }
-        });
-        me.consumer = new Consumer({
-            clientId: `${KafkaConfig.KAFKA_CLIENT_ID}-${clientUUID}`,
-            connectionString: KafkaConfig.KAFKA_HOSTS,
-            groupId: `${KafkaConfig.CONSUMER_GROUP_ID}-${clientUUID}`,
-            logger: {
-                logLevel: KafkaConfig.LOGGER_LEVEL
-            }
-        }, (isAvailable) => me.emit(isAvailable ? Kafka.AVAILABLE_EVENT : Kafka.NOT_AVAILABLE_EVENT));
+        me.subscriptionGroupMap = new Map();
+        me.groupConsumersMap = new Map();
+        me.producer = new NoKafka.Producer(me._getProducerConfig(me.clientUUID));
+        me.consumer = new NoKafka.SimpleConsumer(me._getConsumerConfig(me.clientUUID));
 
         debug(`Started trying connect to server`);
 
-        me.producer
-            .init()
+        me.producer.init()
             .then(() => {
                 me.isProducerReady = true;
                 debug(`Producer is ready`);
@@ -71,26 +121,26 @@ class Kafka extends EventEmitter {
                 me.isProducerReady = false;
             });
 
-        me.on(`producerReady`, () => {
-            me.createTopics([ Kafka.HEALTH_TOPIC ])
-                .then((topics) => {
-                    me.consumer
-                        .init({
-                            strategy: NoKafka.RoundRobinAssignment,
-                            subscriptions: topics,
-                            handler: (messageSet, topic, partition) => me._onMessage(messageSet, topic, partition)
-                        })
-                        .then(() => {
-                            me.isConsumerReady = true;
-                            debug(`Consumer is ready`);
-                            me.emit(`consumerReady`);
-                        })
-                        .catch((error) => {
-                            debug(`Consumer error: ${error}`);
-                            me.isConsumerReady = false;
-                        });
-                });
-        });
+        me.consumer.init()
+            .then(() => {
+                me.isConsumerReady = true;
+                debug(`Consumer is ready`);
+                me.emit(`consumerReady`);
+                me.emit(Kafka.AVAILABLE_EVENT);
+            })
+            .catch((error) => {
+                debug(`Consumer error: ${error}`);
+                me.isConsumerReady = false;
+            });
+
+        me._metadata = null;
+        me._topicArray = [];
+        me._topicRequestSet = new Set();
+        me._topicRequestEmitter = new EventEmitter();
+
+        me._initMetadataPoller();
+
+        me.inputThroughputWatcher = me.createThroughputWatcher(1000);
     }
 
     /**
@@ -107,7 +157,7 @@ class Kafka extends EventEmitter {
 
     /**
      * Returns ready consumer
-     * @returns {Consumer}
+     * @returns {NoKafka.SimpleConsumer}
      */
     getConsumer() {
         const me = this;
@@ -127,6 +177,7 @@ class Kafka extends EventEmitter {
 
         return me.getProducer()
             .then((producer) => producer.client.metadataRequest(topicsList))
+            .then(() => Promise.all(topicsList.map((topicName) => me._waitForTopic(topicName))))
             .then(() => {
                 debug(`Next topics has been created: ${topicsList}`);
                 return topicsList;
@@ -150,32 +201,91 @@ class Kafka extends EventEmitter {
     /**
      * Subscribes consumer to each topic of topicsList and adds subscriberId to each subscription
      * @param subscriberId
+     * @param subscriptionGroup
      * @param topicsList
      * @returns {Promise<Array>}
      */
-    subscribe(subscriberId, topicsList) {
+    subscribe(subscriberId, subscriptionGroup, topicsList) {
         const me = this;
-        const topicsToSubscribe = [];
+        const topicsToSubscribe = new Set();
+        const topicsToUnsubscribe = new Set();
 
-        return me.getConsumer()
-            .then((consumer) => {
-                topicsList.forEach((topicName) => {
-                    let subscriptionSet = me.subscriptionMap.get(topicName);
-
-                    subscriptionSet ? subscriptionSet.add(subscriberId) : topicsToSubscribe.push(topicName);
-                });
-
-                return Promise.all(topicsToSubscribe.map(topicName => consumer.subscribe(topicName,
-                    (messageSet, topics, partition) => me._onMessage(messageSet, topics, partition))));
-            })
+        return topicsList && topicsList.length === 0 ? Promise.resolve(topicsList) : me.getProducer()
+            .then((producer) => producer.client.metadataRequest(topicsList))
+            .then(() => Promise.all(topicsList.map((topicName) => me._waitForTopic(topicName))))
             .then(() => {
-                topicsToSubscribe.forEach((topicName) => {
-                    me.subscriptionMap.set(topicName, new Set().add(subscriberId));
+                topicsList.forEach((topic) => {
+                    const subscribersSet = me.subscriptionMap.get(topic) || new Set;
+                    const groupSubscribersMap = me.subscriptionGroupMap.get(topic) || new Map;
+                    const groupSubscribersSet = groupSubscribersMap.get(subscriptionGroup) || new Set;
+
+                    if (Utils.isDefined(subscriptionGroup) &&
+                        !groupSubscribersSet.has(subscriberId)) {
+                        topicsToSubscribe.add(topic);
+
+                        if (subscribersSet.has(subscriberId)) {
+                            topicsToUnsubscribe.add(topic);
+                        }
+
+                        groupSubscribersMap.forEach((groupSubscribersSet) => {
+                            if (groupSubscribersSet.has(subscriberId)) {
+                                topicsToUnsubscribe.add(topic);
+                            }
+                        });
+                    } else if (!Utils.isDefined(subscriptionGroup) &&
+                        !subscribersSet.has(topic)) {
+                        topicsToSubscribe.add(topic);
+
+                        groupSubscribersMap.forEach((groupSubscribersSet) => {
+                            if (groupSubscribersSet.has(subscriberId)) {
+                                topicsToUnsubscribe.add(topic);
+                            }
+                        });
+                    }
+                });
+            })
+            .then(() => me.unsubscribe(subscriberId, Array.from(topicsToUnsubscribe)))
+            .then(() => me.getConsumer())
+            .then((consumer) => Utils.isDefined(subscriptionGroup) ?
+                Promise.all(Array.from(topicsToSubscribe).map(topic => {
+                    const groupConsumer = new NoKafka.GroupConsumer(me._getConsumerConfig(me.clientUUID, subscriptionGroup));
+
+                    me.groupConsumersMap.set(
+                        Kafka._generateSubscriptionGroupKey(subscriberId, subscriptionGroup, topic), groupConsumer);
+
+                    return groupConsumer.init({
+                        subscriptions: [ topic ],
+                        handler: (messageSet, topic, partition) =>
+                            me._onMessage(messageSet, topic, partition, subscriptionGroup, subscriberId)
+                    });
+                })) :
+                Promise.all(Array.from(topicsToSubscribe).map(topic => consumer.subscribe(topic,
+                    (messageSet, topic, partition) =>
+                        me._onMessage(messageSet, topic, partition))))
+            )
+            .then(() => {
+                Array.from(topicsToSubscribe).forEach((topic) => {
+                    if (Utils.isDefined(subscriptionGroup)) {
+                        const groupSubscribersMap = me.subscriptionGroupMap.get(topic) || new Map;
+                        const groupSubscribersSet = groupSubscribersMap.get(subscriptionGroup) || new Set;
+
+                        groupSubscribersSet.add(subscriberId);
+                        groupSubscribersMap.set(subscriptionGroup, groupSubscribersSet);
+                        me.subscriptionGroupMap.set(topic, groupSubscribersMap);
+                    } else {
+                        const subscribersSet = me.subscriptionMap.get(topic) || new Set;
+
+                        subscribersSet.add(subscriberId);
+                        me.subscriptionMap.set(topic, subscribersSet);
+                    }
                 });
 
                 debug(`Subscriber with id: ${subscriberId} has subscribed to the next topics: ${topicsList}`);
 
                 return topicsList;
+            })
+            .catch((error) => {
+                debug(`Error while subscribing subscriber with id: ${subscriberId} to the next topics: ${topicsList}. Error: ${error}`);
             });
     }
 
@@ -189,29 +299,48 @@ class Kafka extends EventEmitter {
         const me = this;
         const topicsToUnsubscribe = [];
 
-        return me.getConsumer()
+        return topicsList && topicsList.length === 0 ? Promise.resolve(topicsList) : me.getProducer()
+            .then((producer) => producer.client.metadataRequest(topicsList))
+            .then(() => Promise.all(topicsList.map((topicName) => me._waitForTopic(topicName))))
+            .then(() => me.getConsumer())
             .then((consumer) => {
-                topicsList.forEach((topicName) => {
-                    let subscriptionSet = me.subscriptionMap.get(topicName);
+                topicsList.forEach((topic) => {
+                    const subscribersSet = me.subscriptionMap.get(topic) || new Set;
+                    const groupSubscribersMap = me.subscriptionGroupMap.get(topic) || new Map;
 
-                    if (subscriptionSet) {
-                        subscriptionSet.delete(subscriberId);
-                        if (subscriptionSet.size === 0) {
-                            topicsToUnsubscribe.push(topicName);
+                    if (subscribersSet.has(subscriberId)) {
+                        subscribersSet.delete(subscriberId);
+
+                        if (subscribersSet.size === 0) {
+                            topicsToUnsubscribe.push(topic);
                         }
                     }
+
+                    groupSubscribersMap.forEach((groupSubscribersSet, group) => {
+                        if (groupSubscribersSet.has(subscriberId)) {
+                            const groupConsumerKey = Kafka._generateSubscriptionGroupKey(subscriberId, group, topic);
+                            const groupConsumer = me.groupConsumersMap.get(groupConsumerKey);
+
+                            groupConsumer.end();
+                            me.groupConsumersMap.delete(groupConsumerKey);
+                            groupSubscribersSet.delete(subscriberId);
+                        }
+                    });
                 });
 
                 return Promise.all(topicsToUnsubscribe.map(topicName => consumer.unsubscribe(topicName)))
             })
             .then(() => {
-                topicsToUnsubscribe.forEach((topicName) => {
-                    me.subscriptionMap.delete(topicName);
+                topicsToUnsubscribe.forEach((topic) => {
+                    me.subscriptionMap.delete(topic);
                 });
 
                 debug(`Subscriber with id: ${subscriberId} has unsubscribed from the next topics: ${topicsList}`);
 
                 return topicsList
+            })
+            .catch((error) => {
+                debug(`Error while unsubscribing subscriber with id: ${subscriberId} from the next topics: ${topicsList}. Error: ${error}`);
             });
     }
 
@@ -222,9 +351,20 @@ class Kafka extends EventEmitter {
      */
     send(payload) {
         const me = this;
+        let throughput, isThroughputSmall;
+
+        me.inputThroughputWatcher.calculate(payload);
+        throughput = me.inputThroughputWatcher.getThroughput();
+        isThroughputSmall = throughput < KafkaConfig.PRODUCER_MINIMAL_BATCHING_THROUGHPUT_PER_SEC_B;
 
         return me.getProducer()
-            .then((producer) => producer.send(payload));
+            .then((producer) => producer.send(payload, {
+                batch: {
+                    size: isThroughputSmall ? 0 : throughput / 10,
+                    maxWait: isThroughputSmall ?
+                        0 : (throughput / KafkaConfig.PRODUCER_MINIMAL_BATCHING_THROUGHPUT_PER_SEC_B) * 100
+                }
+            }));
     }
 
     /**
@@ -233,16 +373,24 @@ class Kafka extends EventEmitter {
      */
     removeSubscriber(subscriberId) {
         const me = this;
-        const topicsToUnsubscribe = [];
+        const topicsToUnsubscribeSet = new Set();
 
         me.subscriptionMap.forEach((subscribersSet, topic) => {
             if (subscribersSet.has(subscriberId)) {
-                topicsToUnsubscribe.push(topic);
+                topicsToUnsubscribeSet.add(topic);
             }
         });
 
-        if (topicsToUnsubscribe.length > 0) {
-            me.unsubscribe(subscriberId, topicsToUnsubscribe);
+        me.subscriptionGroupMap.forEach((groupSubscribersMap, topic) => {
+            groupSubscribersMap.forEach((subscribersSet) => {
+                if (subscribersSet.has(subscriberId)) {
+                    topicsToUnsubscribeSet.add(topic);
+                }
+            });
+        });
+
+        if (topicsToUnsubscribeSet.size > 0) {
+            me.unsubscribe(subscriberId, Array.from(topicsToUnsubscribeSet));
         }
     }
 
@@ -263,22 +411,103 @@ class Kafka extends EventEmitter {
      * @param messageSet
      * @param topics
      * @param partition
+     * @param subscriptionGroup
+     * @param subscriber
      * @private
      */
-    _onMessage(messageSet, topics, partition) {
+    _onMessage(messageSet, topics, partition, subscriptionGroup, subscriber) {
         const me = this;
 
         Utils.forEach(topics, (topic) => {
-            const subscriptionSet = me.subscriptionMap.get(topic);
+            if (Utils.isDefined(subscriptionGroup)) {
+                messageSet.forEach((message) => {
+                    me.emit(Kafka.MESSAGE_EVENT, subscriber, topic, message.message.value, partition);
+                });
+            } else {
+                const subscriptionSet = me.subscriptionMap.get(topic);
 
-            if (subscriptionSet) {
-                subscriptionSet.forEach((subscriberId) => {
-                    messageSet.forEach((message) => {
-                        me.emit(Kafka.MESSAGE_EVENT, subscriberId, topic, message.message.value, partition);
+                if (subscriptionSet) {
+                    subscriptionSet.forEach((subscriberId) => {
+                        messageSet.forEach((message) => {
+                            me.emit(Kafka.MESSAGE_EVENT, subscriberId, topic, message.message.value, partition);
+                        });
                     });
+                }
+            }
+        });
+    }
+
+    /**
+     *
+     * @private
+     */
+    _initMetadataPoller() {
+        const me = this;
+
+        debug(`Metadata polling started with interval: ${KafkaConfig.METADATA_POLLING_INTERVAL_MS} ms`);
+
+        setInterval(() => {
+            me.getProducer()
+                .then((producer) => producer.client.metadataRequest())
+                .then((metadata) => {
+                    me._metadata = metadata;
+                    me._topicArray = me._metadata.topicMetadata.map((topicMetadata) => topicMetadata.topicName);
+
+                    me._topicArray.forEach((topicName) => {
+                        if (me._topicRequestSet.has(topicName)) {
+                            me._topicRequestEmitter.emit(topicName);
+                            me._topicRequestSet.delete(topicName);
+                        }
+                    });
+                });
+        }, KafkaConfig.METADATA_POLLING_INTERVAL_MS);
+    }
+
+    /**
+     *
+     * @param topicName
+     * @returns {Promise<any>}
+     * @private
+     */
+    _waitForTopic(topicName) {
+        const me = this;
+
+        return new Promise((resolve) => {
+            if (me._topicArray.includes(topicName)) {
+                resolve();
+            } else {
+                me._topicRequestSet.add(topicName);
+                me._topicRequestEmitter.once(topicName, () => {
+                    resolve();
                 });
             }
         });
+    }
+
+    createThroughputWatcher(intervalMs) {
+        let throughput = 0;
+        let totalSize = 0;
+        let prevTimeStamp = 0;
+
+        return {
+            calculate (payload) {
+                totalSize += sizeof(payload);
+
+                const timeStamp = new Date().getTime();
+
+                if ((timeStamp - prevTimeStamp) > intervalMs) {
+                    if (prevTimeStamp !== 0) {
+                        throughput = Math.floor(totalSize / ((timeStamp - prevTimeStamp) / intervalMs));
+                    }
+                    totalSize = 0;
+                    prevTimeStamp = timeStamp;
+                }
+            },
+
+            getThroughput () {
+                return throughput;
+            }
+        }
     }
 }
 

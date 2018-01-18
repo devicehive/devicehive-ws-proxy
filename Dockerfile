@@ -1,11 +1,11 @@
-FROM node:9.2.0-alpine
+FROM node:9.3.0-alpine
 
 MAINTAINER devicehive
 
 LABEL org.label-schema.url="https://devicehive.com" \
       org.label-schema.vendor="DeviceHive" \
-      org.label-schema.vcs-url="https://github.com/devicehive/devicehive-ws-kafka-proxy" \
-      org.label-schema.name="devicehive-ws-kafka-proxy" \
+      org.label-schema.vcs-url="https://github.com/devicehive/devicehive-ws-proxy" \
+      org.label-schema.name="devicehive-ws-proxy" \
       org.label-schema.version="development"
 
 ENV WORK_DIR=/usr/src/app/
