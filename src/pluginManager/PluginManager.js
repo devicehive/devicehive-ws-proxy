@@ -18,7 +18,7 @@ const TokenPayload = payload.TokenPayload;
 class PluginManager extends EventEmitter {
 
     static get PLUGIN_ACTIVE_STATUS() { return `ACTIVE`; }
-    static get PLUGIN_DISABLED_STATUS() { return `DISABLED`; }
+    static get PLUGIN_INACTIVE_STATUS() { return `INACTIVE`; }
     static get PLUGIN_AUTHENTICATE_RESOURCE_PATH() { return `/token/plugin/authenticate`; }
 
     /**
@@ -185,7 +185,7 @@ class PluginManager extends EventEmitter {
         const me = this;
 
         if (me.isEnabled()) {
-            me.updatePlugin(pluginKey, PluginManager.PLUGIN_DISABLED_STATUS);
+            me.updatePlugin(pluginKey, PluginManager.PLUGIN_INACTIVE_STATUS);
             me.pluginKeyTokenPayloadMap.delete(pluginKey);
             me.pluginKeyTokenMap.delete(pluginKey);
         }
