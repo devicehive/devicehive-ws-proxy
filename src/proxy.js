@@ -188,7 +188,7 @@ function processHealthTypeMessage(clientId, message) {
  * @param message
  */
 function processTopicCreateAction(clientId, message) {
-    if (Array.isArray(message.payload.topicList)) {
+    if (message.payload && Array.isArray(message.payload.topicList)) {
         internalCommunicatorFacade.createTopics(message.payload.topicList)
             .then((createdTopicList) => {
                 webSocketServer.send(clientId, new Message({
@@ -238,7 +238,7 @@ function processTopicListAction(clientId, message) {
  * @param message
  */
 function processTopicSubscribeAction(clientId, message) {
-    if (Array.isArray(message.payload.topicList)) {
+    if (message.payload && Array.isArray(message.payload.topicList)) {
         internalCommunicatorFacade.subscribe(clientId, message.payload.subscriptionGroup, message.payload.topicList)
             .then((topicSubscriptionList) => {
                 webSocketServer.send(clientId, new Message({
@@ -267,7 +267,7 @@ function processTopicSubscribeAction(clientId, message) {
  * @param message
  */
 function processTopicUnsubscribeAction(clientId, message) {
-    if (Array.isArray(message.payload.topicList)) {
+    if (message.payload && Array.isArray(message.payload.topicList)) {
         internalCommunicatorFacade.unsubscribe(clientId, message.payload.topicList)
             .then((topicUnsubscriptionList) => {
                 webSocketServer.send(clientId, new Message({
@@ -316,7 +316,7 @@ function processNotificationCreateAction(clientId, message) {
  * @param message
  */
 function processPluginAuthenticateAction(clientId, message) {
-    if (message.payload.token) {
+    if (message.payload && message.payload.token) {
         pluginManager.authenticate(clientId, message.payload.token)
             .then((tokenPayload) => {
                 webSocketServer.send(clientId, new Message({
