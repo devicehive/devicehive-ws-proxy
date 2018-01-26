@@ -14,12 +14,16 @@ Run the next command:
     
 ## External mode (with enabled PluginManager)
 
-In configuration file set the **ENABLE_PLUGIN_MANAGER** field to true  
+In configuration file set the **ENABLE_PLUGIN_MANAGER** field to **true**  
   **or**  
-Set environmental variable **PROXY.ENABLE_PLUGIN_MANAGER** to true   
+Set environmental variable **PROXY.ENABLE_PLUGIN_MANAGER** to **true**   
 And run the next command:
 
     - node ./src/proxy.js
+
+By default proxy listening for WS connections on **ws://localhost:3000** (independent from the mode).
+To change it set the **WEB_SOCKET_SERVER_HOST** and **WEB_SOCKET_SERVER_PORT** fields in the configuration file or
+set environmental variables: **PROXY.WEB_SOCKET_SERVER_HOST** and **PROXY.WEB_SOCKET_SERVER_PORT**
     
 # Configuration
 ## Proxy
