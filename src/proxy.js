@@ -359,15 +359,17 @@ function respondWithAcknowledgment(clientId, message = {}) {
  * @param clientId
  * @param errorMessage
  * @param message
+ * @param code
  */
-function respondWithFailure(clientId, errorMessage, message = {}) {
+function respondWithFailure(clientId, errorMessage, message = {}, code) {
     webSocketServer.send(clientId, new Message({
         id: message.id,
         type: message.type || MessageUtils.ACK_TYPE,
         action: message.action,
         status: MessageUtils.FAILED_STATUS,
         payload: {
-            message: errorMessage
+            message: errorMessage,
+            code: code
         }
     }).toString());
 }

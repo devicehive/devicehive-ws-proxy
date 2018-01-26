@@ -6,7 +6,21 @@ allowing you to communicate with the next message brokers through WebSockets:
 
 - Kafka
 
+# Start the proxy
+## Internal mode
+Run the next command:
 
+    - node ./src/proxy.js
+    
+## External mode (with enabled PluginManager)
+
+In configuration file set the **ENABLE_PLUGIN_MANAGER** field to true  
+  **or**  
+Set environmental variable **PROXY.ENABLE_PLUGIN_MANAGER** to true   
+And run the next command:
+
+    - node ./src/proxy.js
+    
 # Configuration
 ## Proxy
     [path-to-proxy-project]/src/config.json    
@@ -92,11 +106,6 @@ Through the "DEBUG" environment variable you are able to specify next modules lo
 Example:
 
     DEBUG=kafka,messagebuffer,websocketserver    
-    
-# Start the proxy
-
-    - node ./src/proxy.js
-
 
 # Message Structure
 ## General
