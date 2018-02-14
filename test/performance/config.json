@@ -1,0 +1,26 @@
+{
+  "PROXY_SERVER_URL": "ws://localhost:3000",
+  "TOTAL_MESSAGES_AMOUNT": 60000,
+  "MESSAGE_PER_SECOND": 2000,
+  "TEST_TOPIC": "load-test-topic",
+  "TEST_PARTITION": "load-test-partition",
+  "TEST_MESSAGE": {
+    "cId": "424d8967-75a5-4c4e-b31c-953b79733df2",
+    "pK": "load-device-100001",
+    "sre": true,
+    "rTo": "response_topic_xLMBxPbP",
+    "t": 0,
+    "b": {
+      "a": 4,
+      "deviceNotification": {
+        "id": 1521213024,
+        "notification": "load-notification",
+        "deviceId": "load-device-100001",
+        "networkId": 1419,
+        "deviceTypeId": 1,
+        "timestamp": "2018-02-13T13:59:12.049",
+        "parameters": null
+      }
+    }
+  }
+}
