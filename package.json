@@ -17,9 +17,9 @@
         "debug": "^2.6.9",
         "devicehive-proxy-message": "^1.0.11",
         "fifo": "^2.3.0",
-        "json-evn-configurator": "^1.0.4",
-        "jsonwebtoken": "^8.1.0",
-        "lodash": "^4.17.4",
+        "json-evn-configurator": "^1.0.5",
+        "jsonwebtoken": "^8.1.1",
+        "lodash": "^4.17.5",
         "no-kafka": "^3.2.8",
         "object-sizeof": "^1.2.0",
         "request": "^2.83.0",
@@ -29,6 +29,8 @@
         "ws": "^3.3.3"
     },
     "devDependencies": {
-        "node-status": "^1.0.0"
+        "node-status": "^1.0.0",
+        "cli-spinners": "^1.1.0",
+        "colors": "^1.1.2"
     }
 }
