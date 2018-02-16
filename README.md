@@ -14,7 +14,11 @@ Run the next command:
     
 ## External mode (with enabled PluginManager)
 
-In configuration file set the **ENABLE_PLUGIN_MANAGER** field to **true**  
+In configuration file:
+
+    [path-to-proxy-project]/src/config.json
+
+set the **ENABLE_PLUGIN_MANAGER** field to **true**
   **or**  
 Set environmental variable **PROXY.ENABLE_PLUGIN_MANAGER** to **true**   
 And run the next command:
