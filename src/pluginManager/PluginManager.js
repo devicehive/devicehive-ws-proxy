@@ -135,8 +135,8 @@ class PluginManager extends EventEmitter {
             const isAuthenticated = me.isAuthenticated(pluginKey);
 
             if (!isAuthenticated &&
-                message.type !== MessageUtils.PLUGIN_TYPE &&
-                message.action !== MessageUtils.AUTHENTICATE_ACTION) {
+                (message.type !== MessageUtils.PLUGIN_TYPE && message.action !== MessageUtils.AUTHENTICATE_ACTION) &&
+                message.type !== MessageUtils.HEALTH_CHECK_TYPE) {
                 throw new NotAuthorizedPluginError(message);
             } else if (isAuthenticated === true) {
                 const tokenPayload = me.getPluginTokenPayload(pluginKey);
