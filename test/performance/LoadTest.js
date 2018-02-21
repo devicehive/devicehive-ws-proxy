@@ -1,11 +1,15 @@
 const Config = require(`./config`);
 const status = require('node-status');
+const uuid = require(`uuid`);
 const { fork } = require('child_process');
 const { MessageBuilder } = require(`devicehive-proxy-message`);
 const { NotificationCreatePayload } = require(`devicehive-proxy-message`).payload;
 
 const receiver = fork('LoadTestReceiver.js');
 const sender = fork('LoadTestSender.js');
+const uniqueUuid = uuid();
+
+receiver.send({ action: "start", uuid: uniqueUuid });
 
 function multipleTrigger (count, action) {
     let doubleCounter = 0;
@@ -59,7 +63,7 @@ const readyTrigger = multipleTrigger(2, () => {
         pattern: ' Uptime: {uptime} | {spinner.cyan} | Sent out: {sendMonitor.bar} | Received: {receiveMonitor.bar} | Actual throughput: {throughputMonitor.green.custom} B/s | Largest latency: {latencyMonitor.red.custom} s '
     });
 
-    sender.send({ action: "start" });
+    sender.send({ action: "start", uuid: uniqueUuid });
 });
 
 const finishTrigger = multipleTrigger(2, () => {

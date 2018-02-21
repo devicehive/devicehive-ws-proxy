@@ -5,6 +5,7 @@ const WebSocket = require(`ws`);
 const Utils = require(`../utils`);
 const debug = require(`debug`)(`websocketserver`);
 const shortId = require('shortid');
+const http = require(`http`);
 
 
 /**
@@ -28,27 +29,45 @@ class WebSocketServer extends EventEmitter {
 
 		const me = this;
 
-		me.isReady = false;
-		me.clientIdMap = new Map();
-		me.wsServer = new WebSocket.Server({
-			host: ProxyConfig.WEB_SOCKET_SERVER_HOST,
-			port: ProxyConfig.WEB_SOCKET_SERVER_PORT,
-			clientTracking: true
-		});
+        me.isReady = false;
+        me.clientIdMap = new Map();
 
-		me.wsServer.on(`connection`, (ws, req) => me._processNewConnection(ws));
+        // if (cluster.isMaster) {
+        // 	console.log(`master`);
+        //     me.wsServer = new WebSocket.Server({
+        //         host: ProxyConfig.WEB_SOCKET_SERVER_HOST,
+        //         port: ProxyConfig.WEB_SOCKET_SERVER_PORT,
+        //         clientTracking: true
+        //     });
+        // } else {
 
-		me.wsServer.on(`error`, (error) => {
-			debug(`Server error ${error}`);
-			me.isReady = true
-		});
+            const server = new http.createServer().listen(0, 'localhost');
 
-		me.wsServer.on(`listening`, () => {
-			debug(`Server starts listening on ${ProxyConfig.WEB_SOCKET_SERVER_HOST}:${ProxyConfig.WEB_SOCKET_SERVER_PORT}`);
-			me.isReady = true
-		});
+            me.wsServer = new WebSocket.Server({ server });
 
-		me._setupPingInterval();
+            process.on('message', function(message, connection) {
+                console.log(process.pid, message);
+
+                if (message !== 'sticky-session:connection') { return; }
+
+                server.emit('connection', connection);
+                connection.resume();
+            });
+		//}
+
+        me.wsServer.on(`connection`, (ws, req) => me._processNewConnection(ws));
+
+        me.wsServer.on(`error`, (error) => {
+            debug(`Server error ${error}`);
+            me.isReady = true
+        });
+
+        me.wsServer.on(`listening`, () => {
+            debug(`Server starts listening on ${ProxyConfig.WEB_SOCKET_SERVER_HOST}:${ProxyConfig.WEB_SOCKET_SERVER_PORT}`);
+            me.isReady = true
+        });
+
+        me._setupPingInterval();
 	}
 
     /**

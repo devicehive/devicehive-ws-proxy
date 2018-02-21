@@ -379,15 +379,15 @@ function respondWithFailure(clientId, errorMessage, message = {}, code) {
  * Init process exit handlers. Log errors
  */
 function initProcessExitHandlers() {
-    process.stdin.resume();
-
-    function exitHandler(error) {
-        if (error) {
-            logger.err(`Process error: ${error.message}`);
-            logger.err(error.stack);
-        }
-    }
-
-    process.on('exit', exitHandler);
-    process.on('uncaughtException', exitHandler);
+    // process.stdin.resume();
+    //
+    // function exitHandler(error) {
+    //     if (error) {
+    //         logger.err(`Process error: ${error.message}`);
+    //         logger.err(error.stack);
+    //     }
+    // }
+    //
+    // process.on('exit', exitHandler);
+    // process.on('uncaughtException', exitHandler);
 }
