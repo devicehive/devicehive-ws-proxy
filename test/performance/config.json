@@ -1,7 +1,7 @@
 {
   "PROXY_SERVER_URL": "ws://localhost:3000",
-  "TOTAL_MESSAGES_AMOUNT": 60000,
-  "MESSAGE_PER_SECOND": 2000,
+  "TOTAL_MESSAGES_AMOUNT": 300000,
+  "MESSAGE_PER_SECOND": 15000,
   "TEST_TOPIC": "load-test-topic",
   "TEST_PARTITION": "load-test-partition",
   "TEST_MESSAGE": {
