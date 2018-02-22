@@ -28,7 +28,20 @@ And run the next command:
 By default proxy listening for WS connections on **ws://localhost:3000** (independent from the mode).
 To change it set the **WEB_SOCKET_SERVER_HOST** and **WEB_SOCKET_SERVER_PORT** fields in the configuration file or
 set environmental variables: **PROXY.WEB_SOCKET_SERVER_HOST** and **PROXY.WEB_SOCKET_SERVER_PORT**
-    
+
+## Clustering
+
+To run proxy in cluster mode use next command
+
+    - node ./src/proxy-cluster.js
+
+By default it will spawn the number of proxy processes that is equals to amount of cpu cores.
+To change it override the **CLUSTER_WORKERS** configuration field in
+
+    [path-to-proxy-project]/src/config.json
+
+or set the environmental variable **PROXY.CLUSTER_WORKERS** to some integer value.
+
 # Configuration
 ## Proxy
     [path-to-proxy-project]/src/config.json    
