@@ -15,9 +15,6 @@ const internalCommunicatorFacade = new InternalCommunicatorFacade(Config.COMMUNI
 const webSocketServer = new WebSocketServer();
 
 
-initProcessExitHandlers();
-
-
 webSocketServer.on(WebSocketServer.CLIENT_CONNECT_EVENT, (clientId) => {
     logger.info(`New WebSocket client connected. ID: ${clientId}`);
 });
@@ -372,22 +369,4 @@ function respondWithFailure(clientId, errorMessage, message = {}, code) {
             code: code
         }
     }).toString());
-}
-
-
-/**
- * Init process exit handlers. Log errors
- */
-function initProcessExitHandlers() {
-    // process.stdin.resume();
-    //
-    // function exitHandler(error) {
-    //     if (error) {
-    //         logger.err(`Process error: ${error.message}`);
-    //         logger.err(error.stack);
-    //     }
-    // }
-    //
-    // process.on('exit', exitHandler);
-    // process.on('uncaughtException', exitHandler);
 }
