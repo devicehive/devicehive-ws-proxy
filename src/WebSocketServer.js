@@ -32,30 +32,30 @@ class WebSocketServer extends EventEmitter {
         me.isReady = false;
         me.clientIdMap = new Map();
 
-        // if (cluster.isMaster) {
-        // 	console.log(`master`);
-        //     me.wsServer = new WebSocket.Server({
-        //         host: ProxyConfig.WEB_SOCKET_SERVER_HOST,
-        //         port: ProxyConfig.WEB_SOCKET_SERVER_PORT,
-        //         clientTracking: true
-        //     });
-        // } else {
-
-            const server = new http.createServer().listen(0, 'localhost');
+        if (!process.env.IS_CLUSTER_MODE) {
+            me.wsServer = new WebSocket.Server({
+                host: ProxyConfig.WEB_SOCKET_SERVER_HOST,
+                port: ProxyConfig.WEB_SOCKET_SERVER_PORT,
+                clientTracking: true
+            });
+        } else {
+            const server = new http.createServer().listen(0, ProxyConfig.WEB_SOCKET_SERVER_HOST);
 
             me.wsServer = new WebSocket.Server({ server });
 
-            process.on('message', function(message, connection) {
-                console.log(process.pid, message);
+            process.on('message', (message, connection) => {
+                if (message === CONST.STICKY_SESSION_TAG) {
+                    server.emit('connection', connection);
+                    connection.resume();
 
-                if (message !== 'sticky-session:connection') { return; }
-
-                server.emit('connection', connection);
-                connection.resume();
+                    debug(`Sticky-session. Connection received`);
+				}
             });
-		//}
 
-        me.wsServer.on(`connection`, (ws, req) => me._processNewConnection(ws));
+            debug(`WebSocket server started in cluster mode`);
+		}
+
+        me.wsServer.on(`connection`, (ws) => me._processNewConnection(ws));
 
         me.wsServer.on(`error`, (error) => {
             debug(`Server error ${error}`);
