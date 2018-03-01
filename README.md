@@ -6,7 +6,29 @@ allowing you to communicate with the next message brokers through WebSockets:
 
 - Kafka
 
+# Start the proxy
+## Internal mode
+Run the next command:
 
+    - node ./src/proxy.js
+    
+## External mode (with enabled PluginManager)
+
+In configuration file:
+
+    [path-to-proxy-project]/src/config.json
+
+set the **ENABLE_PLUGIN_MANAGER** field to **true**
+  **or**  
+Set environmental variable **PROXY.ENABLE_PLUGIN_MANAGER** to **true**   
+And run the next command:
+
+    - node ./src/proxy.js
+
+By default proxy listening for WS connections on **ws://localhost:3000** (independent from the mode).
+To change it set the **WEB_SOCKET_SERVER_HOST** and **WEB_SOCKET_SERVER_PORT** fields in the configuration file or
+set environmental variables: **PROXY.WEB_SOCKET_SERVER_HOST** and **PROXY.WEB_SOCKET_SERVER_PORT**
+    
 # Configuration
 ## Proxy
     [path-to-proxy-project]/src/config.json    
@@ -92,11 +114,6 @@ Through the "DEBUG" environment variable you are able to specify next modules lo
 Example:
 
     DEBUG=kafka,messagebuffer,websocketserver    
-    
-# Start the proxy
-
-    - node ./src/proxy.js
-
 
 # Message Structure
 ## General

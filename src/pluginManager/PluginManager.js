@@ -18,7 +18,7 @@ const TokenPayload = payload.TokenPayload;
 class PluginManager extends EventEmitter {
 
     static get PLUGIN_ACTIVE_STATUS() { return `ACTIVE`; }
-    static get PLUGIN_DISABLED_STATUS() { return `DISABLED`; }
+    static get PLUGIN_INACTIVE_STATUS() { return `INACTIVE`; }
     static get PLUGIN_AUTHENTICATE_RESOURCE_PATH() { return `/token/plugin/authenticate`; }
 
     /**
@@ -56,25 +56,30 @@ class PluginManager extends EventEmitter {
                     uri: `${Config.AUTH_SERVICE_ENDPOINT}${PluginManager.PLUGIN_AUTHENTICATE_RESOURCE_PATH}?token=${token}`
                 }, (err, response, body) => {
                     try {
-                        const authenticationResponse = JSON.parse(body);
-
-                        if (!err && response.statusCode === 200) {
-                            const tokenPayload = TokenPayload.normalize(jwt.decode(token).payload);
-
-                            debug(`Plugin with key: ${pluginKey} has been authenticated`);
-
-                            me.pluginKeyTokenMap.set(pluginKey, token);
-                            me.pluginKeyTokenPayloadMap.set(pluginKey, tokenPayload);
-                            me.updatePlugin(pluginKey, PluginManager.PLUGIN_ACTIVE_STATUS);
-
-                            resolve(tokenPayload);
+                        if (err) {
+                            debug(`Unexpected error: ${err.message}`);
+                            reject(err);
                         } else {
-                            debug(`Plugin with key: ${pluginKey} has not been authenticated`);
+                            const authenticationResponse = JSON.parse(body);
 
-                            reject(new AuthenticationPluginError(authenticationResponse.message));
+                            if (!err && response.statusCode === 200) {
+                                const tokenPayload = TokenPayload.normalize(jwt.decode(token).payload);
+
+                                debug(`Plugin with key: ${pluginKey} has been authenticated`);
+
+                                me.pluginKeyTokenMap.set(pluginKey, token);
+                                me.pluginKeyTokenPayloadMap.set(pluginKey, tokenPayload);
+                                me.updatePlugin(pluginKey, PluginManager.PLUGIN_ACTIVE_STATUS);
+
+                                resolve(tokenPayload);
+                            } else {
+                                debug(`Plugin with key: ${pluginKey} has not been authenticated. Reason: ${authenticationResponse.message}`);
+                                reject(new AuthenticationPluginError(authenticationResponse.message));
+                            }
                         }
                     } catch (error) {
-                        reject(error.message);
+                        debug(`Unexpected error: ${error.message}`);
+                        reject(error);
                     }
                 });
             }
@@ -130,8 +135,8 @@ class PluginManager extends EventEmitter {
             const isAuthenticated = me.isAuthenticated(pluginKey);
 
             if (!isAuthenticated &&
-                message.type !== MessageUtils.PLUGIN_TYPE &&
-                message.action !== MessageUtils.AUTHENTICATE_ACTION) {
+                (message.type !== MessageUtils.PLUGIN_TYPE && message.action !== MessageUtils.AUTHENTICATE_ACTION) &&
+                message.type !== MessageUtils.HEALTH_CHECK_TYPE) {
                 throw new NotAuthorizedPluginError(message);
             } else if (isAuthenticated === true) {
                 const tokenPayload = me.getPluginTokenPayload(pluginKey);
@@ -185,7 +190,7 @@ class PluginManager extends EventEmitter {
         const me = this;
 
         if (me.isEnabled()) {
-            me.updatePlugin(pluginKey, PluginManager.PLUGIN_DISABLED_STATUS);
+            me.updatePlugin(pluginKey, PluginManager.PLUGIN_INACTIVE_STATUS);
             me.pluginKeyTokenPayloadMap.delete(pluginKey);
             me.pluginKeyTokenMap.delete(pluginKey);
         }
