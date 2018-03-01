@@ -65,13 +65,21 @@ class PluginManager extends EventEmitter {
                             if (!err && response.statusCode === 200) {
                                 const tokenPayload = TokenPayload.normalize(jwt.decode(token).payload);
 
-                                debug(`Plugin with key: ${pluginKey} has been authenticated`);
-
                                 me.pluginKeyTokenMap.set(pluginKey, token);
                                 me.pluginKeyTokenPayloadMap.set(pluginKey, tokenPayload);
-                                me.updatePlugin(pluginKey, PluginManager.PLUGIN_ACTIVE_STATUS);
 
-                                resolve(tokenPayload);
+                                me.updatePlugin(pluginKey, PluginManager.PLUGIN_ACTIVE_STATUS)
+                                    .then(() => {
+                                        debug(`Plugin with key: ${pluginKey} has been authenticated`);
+
+                                        resolve(tokenPayload);
+                                    })
+                                    .catch((error) => {
+                                        me.pluginKeyTokenMap.delete(pluginKey);
+                                        me.pluginKeyTokenPayloadMap.delete(pluginKey);
+
+                                        reject(error);
+                                    });
                             } else {
                                 debug(`Plugin with key: ${pluginKey} has not been authenticated. Reason: ${authenticationResponse.message}`);
                                 reject(new AuthenticationPluginError(authenticationResponse.message));
@@ -95,28 +103,36 @@ class PluginManager extends EventEmitter {
         const me = this;
         const tokenPayload = me.pluginKeyTokenPayloadMap.get(pluginKey);
 
-        if (tokenPayload) {
-            const queryString = Utils.queryBuilder({
-                status: status,
-                topicName: tokenPayload.topic
-            });
+        return new Promise((resolve, reject) => {
+            if (tokenPayload) {
+                const queryString = Utils.queryBuilder({
+                    status: status,
+                    topicName: tokenPayload.topic
+                });
 
-            request({
-                method: `PUT`,
-                uri: `${Config.PLUGIN_MANAGEMENT_SERVICE_ENDPOINT}/plugin${queryString}`,
-                headers: {
-                    Authorization: `Bearer ${me.pluginKeyTokenMap.get(pluginKey)}`
-                }
-            }, (error, response, body) => {
-                const requestError = error ? error : body ? JSON.parse(body).error : null;
+                request({
+                    method: `PUT`,
+                    uri: `${Config.PLUGIN_MANAGEMENT_SERVICE_ENDPOINT}/plugin${queryString}`,
+                    headers: {
+                        Authorization: `Bearer ${me.pluginKeyTokenMap.get(pluginKey)}`
+                    }
+                }, (error, response, body) => {
+                    const requestError = error ? error : body ? JSON.parse(body).error : null;
 
-                if (requestError) {
-                    debug(`Error while updating plugin (${pluginKey}) status: ${requestError}`);
-                } else {
-                    debug(`Plugin ${pluginKey} has changed it's state to ${status}`);
-                }
-            });
-        }
+                    if (requestError) {
+                        debug(`Error while updating plugin (${pluginKey}) status: ${requestError}`);
+
+                        reject(requestError);
+                    } else {
+                        debug(`Plugin ${pluginKey} has changed it's state to ${status}`);
+
+                        resolve();
+                    }
+                });
+            } else {
+                reject(`No plugin token payload`);
+            }
+        });
     }
 
     /**
