@@ -24,19 +24,23 @@ function startSendingRoutine(uuid) {
         topic: Config.TEST_TOPIC + uuid,
         partition: Config.TEST_PARTITION,
         message: JSON.stringify(Config.TEST_MESSAGE)
-    }));
+    })).toString();
+
+    setTimeout(() => {
+        process.send({ action: `started` });
+    }, 95);
 
     const intervalHandler = setInterval(() => {
         for (let c = 0; c < messagesPes100ms; c++) {
             messageCount++;
-            proxyClient.send(TEST_MESSAGE);
+            proxyClient.sendRaw(TEST_MESSAGE);
+        }
 
-            if (messageCount === TOTAL_MESSAGES) {
-                clearInterval(intervalHandler);
-                clearInterval(monitorIntervalHandler);
-                process.send({ action: `sent`, amount: messageCount });
-                process.send({ action: `finished` });
-            }
+        if (messageCount === TOTAL_MESSAGES) {
+            clearInterval(intervalHandler);
+            clearInterval(monitorIntervalHandler);
+            process.send({ action: `sent`, amount: messageCount });
+            process.send({ action: `finished` });
         }
     }, 100);
 }

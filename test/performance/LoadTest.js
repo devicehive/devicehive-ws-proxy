@@ -58,11 +58,6 @@ const throughputMonitor = status.addItem('throughputMonitor', { custom: () => {
 });
 
 const readyTrigger = multipleTrigger(2, () => {
-    status.start({
-        interval: 200,
-        pattern: ' Uptime: {uptime} | {spinner.cyan} | Sent out: {sendMonitor.bar} | Received: {receiveMonitor.bar} | Actual throughput: {throughputMonitor.green.custom} B/s | Largest latency: {latencyMonitor.red.custom} s '
-    });
-
     sender.send({ action: "start", uuid: uniqueUuid });
 });
 
@@ -97,6 +92,12 @@ sender.on(`message`, (message) => {
     switch (message.action) {
         case "ready":
             readyTrigger();
+            break;
+        case "started":
+            status.start({
+                interval: 200,
+                pattern: ' Uptime: {uptime} | {spinner.cyan} | Sent out: {sendMonitor.bar} | Received: {receiveMonitor.bar} | Actual throughput: {throughputMonitor.green.custom} B/s | Largest latency: {latencyMonitor.red.custom} s '
+            });
             break;
         case "sent":
             sendMonitor.inc(message.amount - sendMonitor.count);

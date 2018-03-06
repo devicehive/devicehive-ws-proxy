@@ -360,9 +360,11 @@ class Kafka extends EventEmitter {
         return me.getProducer()
             .then((producer) => producer.send(payload, {
                 batch: {
-                    size: isThroughputSmall ? 0 : Math.ceil(throughput / 10),
+                    size: isThroughputSmall ? 0 : Math.ceil(throughput / KafkaConfig.PRODUCER_BATCH_DIVISION_KOEFF),
                     maxWait: isThroughputSmall ?
-                        0 : Math.ceil((throughput / KafkaConfig.PRODUCER_MINIMAL_BATCHING_THROUGHPUT_PER_SEC_B) * 10)
+                        0 : Math.ceil(
+                            (KafkaConfig.PRODUCER_MINIMAL_BATCHING_THROUGHPUT_PER_SEC_B / throughput) *
+                            KafkaConfig.PRODUCER_BATCH_MIN_WAIT_TIMEOUT_KOEFF)
                 }
             }));
     }
