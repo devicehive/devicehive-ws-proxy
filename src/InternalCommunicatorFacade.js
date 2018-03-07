@@ -130,6 +130,16 @@ class InternalCommunicatorFacade extends EventEmitter {
 	}
 
     /**
+	 * Returns average input load
+     * @returns {Number}
+     */
+    getAverageInputLoad() {
+        const me = this;
+
+        return me.communicator.getAverageInputLoad();
+	}
+
+    /**
 	 * Checks if the communicator is available
      * @returns {*}
      */

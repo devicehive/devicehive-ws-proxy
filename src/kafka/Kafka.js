@@ -359,12 +359,16 @@ class Kafka extends EventEmitter {
 
         return me.getProducer()
             .then((producer) => producer.send(payload, {
+                // batch: {
+                //     size: isThroughputSmall ? 0 : Math.ceil(throughput / KafkaConfig.PRODUCER_BATCH_DIVISION_KOEFF),
+                //     maxWait: isThroughputSmall ?
+                //         0 : Math.ceil(
+                //             (KafkaConfig.PRODUCER_MINIMAL_BATCHING_THROUGHPUT_PER_SEC_B / throughput) *
+                //             KafkaConfig.PRODUCER_BATCH_MIN_WAIT_TIMEOUT_KOEFF)
+                // }
                 batch: {
-                    size: isThroughputSmall ? 0 : Math.ceil(throughput / KafkaConfig.PRODUCER_BATCH_DIVISION_KOEFF),
-                    maxWait: isThroughputSmall ?
-                        0 : Math.ceil(
-                            (KafkaConfig.PRODUCER_MINIMAL_BATCHING_THROUGHPUT_PER_SEC_B / throughput) *
-                            KafkaConfig.PRODUCER_BATCH_MIN_WAIT_TIMEOUT_KOEFF)
+                    size: isThroughputSmall ? 0 : throughput / 50,
+                    maxWait: isThroughputSmall ? 0 : 15
                 }
             }));
     }
@@ -394,6 +398,16 @@ class Kafka extends EventEmitter {
         if (topicsToUnsubscribeSet.size > 0) {
             me.unsubscribe(subscriberId, Array.from(topicsToUnsubscribeSet));
         }
+    }
+
+    /**
+     * Returns average input load
+     * @returns {Number}
+     */
+    getAverageInputLoad() {
+        const me = this;
+
+        return me.inputThroughputWatcher.getThroughput();
     }
 
     /**
@@ -490,10 +504,13 @@ class Kafka extends EventEmitter {
         let throughput = 0;
         let totalSize = 0;
         let prevTimeStamp = 0;
+        let resetTimerHandler = null;
 
         return {
             calculate (payload) {
-                totalSize += sizeof(payload);
+                clearTimeout(resetTimerHandler);
+
+                totalSize += JSON.stringify(payload).length;
 
                 const timeStamp = new Date().getTime();
 
@@ -504,6 +521,8 @@ class Kafka extends EventEmitter {
                     totalSize = 0;
                     prevTimeStamp = timeStamp;
                 }
+
+                resetTimerHandler = setTimeout(() => throughput = 0, intervalMs);
             },
 
             getThroughput () {

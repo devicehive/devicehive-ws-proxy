@@ -28,7 +28,7 @@ function startSendingRoutine(uuid) {
 
     setTimeout(() => {
         process.send({ action: `started` });
-    }, 95);
+    }, 75);
 
     const intervalHandler = setInterval(() => {
         for (let c = 0; c < messagesPes100ms; c++) {
@@ -42,7 +42,7 @@ function startSendingRoutine(uuid) {
             process.send({ action: `sent`, amount: messageCount });
             process.send({ action: `finished` });
         }
-    }, 100);
+    }, 87);
 }
 
 proxyClient.on(`open`, async () => {

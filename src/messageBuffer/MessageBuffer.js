@@ -102,7 +102,7 @@ class MessageBuffer extends EventEmitter {
         const me = this;
         const message = me.fifo.shift();
 
-        me._decrementDataSize(sizeof(message));
+        me._decrementDataSize(message.size);
 
         debug(`Shifted message, length: ${me.length}`);
 

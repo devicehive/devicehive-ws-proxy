@@ -171,9 +171,12 @@ function processHealthTypeMessage(clientId, message) {
                 CONST.AVAILABLE_STATUS :
                 CONST.NOT_AVAILABLE_STATUS,
             messageBufferFillPercentage: messageBuffer.getFillPercentage(),
-            communicator: internalCommunicatorFacade.isAvailable() ?
-                CONST.AVAILABLE_STATUS :
-                CONST.NOT_AVAILABLE_STATUS
+            communicator: {
+                isAvailable: internalCommunicatorFacade.isAvailable() ?
+                    CONST.AVAILABLE_STATUS :
+                    CONST.NOT_AVAILABLE_STATUS,
+                inputLoad: internalCommunicatorFacade.getAverageInputLoad()
+            }
         }
     }).toString());
 }

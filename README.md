@@ -99,12 +99,14 @@ Prefix separator can be overridden by **_ENVSEPARATOR_** environmental variable.
 - **_KAFKA_HOSTS_** - Address to Kafka server (default: "localhost:9092");  
 - **_KAFKA_CLIENT_ID_** - Kafka client name prefix (default: "ws-proxy-kafka-client");  
 - **_CONSUMER_GROUP_ID_** - Kafka consumer group prefix (default: "ws-proxy-consumer-group");  
-- **_LOGGER_LEVEL_** Kafka logger level (default: 0);  
-- **_METADATA_POLLING_INTERVAL_MS_** Kafka metadata polling interval (default: 1000);  
-- **_PRODUCER_MINIMAL_BATCHING_THROUGHPUT_PER_SEC_B_** Maximum throughput on producer side to work without batching (default: 1000);  
-- **_CONSUMER_IDLE_TIMEOUT_** Timeout between consumer fetching requests (default: 0);  
-- **_CONSUMER_MAX_WAIT_TIME_** Maximum wait time to collect batch with size of **_CONSUMER_MAX_BYTES_** (default: 0);  
-- **_CONSUMER_MAX_BYTES_** Maximum batch size on consumer side in bytes (default: 1000000);  
+- **_LOGGER_LEVEL_** - Kafka logger level (default: 0);
+- **_METADATA_POLLING_INTERVAL_MS_** - Kafka metadata polling interval (default: 1000);
+- **_PRODUCER_MINIMAL_BATCHING_THROUGHPUT_PER_SEC_B_** - Maximum throughput on producer side to work without batching (default: 250000);
+- **_PRODUCER_BATCH_DIVISION_KOEFF_** - (default: 10),
+- **_PRODUCER_BATCH_MIN_WAIT_TIMEOUT_KOEFF_** - (default: 20),
+- **_CONSUMER_IDLE_TIMEOUT_** - Timeout between consumer fetching requests (default: 30);
+- **_CONSUMER_MAX_WAIT_TIME_** - Maximum wait time to collect batch with size of **_CONSUMER_MAX_BYTES_** (default: 5);
+- **_CONSUMER_MAX_BYTES_** - Maximum batch size on consumer side in bytes (default: 1000000);
     
 Each configuration field can be overridden with corresponding environmental variable with "KAFKA" prefix, for example:
 
