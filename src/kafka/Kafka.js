@@ -141,6 +141,7 @@ class Kafka extends EventEmitter {
         me._initMetadataPoller();
 
         me.inputThroughputWatcher = me.createThroughputWatcher(1000);
+        me.outputThroughputWatcher = me.createThroughputWatcher(1000);
     }
 
     /**
@@ -353,18 +354,15 @@ class Kafka extends EventEmitter {
         const me = this;
         let throughput, isThroughputSmall;
 
-        me.inputThroughputWatcher.calculate(payload);
+        me.inputThroughputWatcher.calculate(JSON.stringify(payload));
         throughput = me.inputThroughputWatcher.getThroughput();
         isThroughputSmall = throughput < KafkaConfig.PRODUCER_MINIMAL_BATCHING_THROUGHPUT_PER_SEC_B;
 
         return me.getProducer()
             .then((producer) => producer.send(payload, {
                 batch: {
-                    size: isThroughputSmall ? 0 : Math.ceil(throughput / KafkaConfig.PRODUCER_BATCH_DIVISION_KOEFF),
-                    maxWait: isThroughputSmall ?
-                        0 : Math.ceil(
-                            (KafkaConfig.PRODUCER_MINIMAL_BATCHING_THROUGHPUT_PER_SEC_B / throughput) *
-                            KafkaConfig.PRODUCER_BATCH_MIN_WAIT_TIMEOUT_KOEFF)
+                    size: isThroughputSmall ? 0 : throughput / 50,
+                    maxWait: isThroughputSmall ? 0 : 15
                 }
             }));
     }
@@ -397,6 +395,26 @@ class Kafka extends EventEmitter {
     }
 
     /**
+     * Returns average input load
+     * @returns {Number}
+     */
+    getAverageInputLoad() {
+        const me = this;
+
+        return me.inputThroughputWatcher.getThroughput();
+    }
+
+    /**
+     * Returns average output load
+     * @returns {Number}
+     */
+    getAverageOutputLoad() {
+        const me = this;
+
+        return me.outputThroughputWatcher.getThroughput();
+    }
+
+    /**
      * Checks if Kafka is available
      * @returns {boolean}
      */
@@ -423,7 +441,10 @@ class Kafka extends EventEmitter {
         Utils.forEach(topics, (topic) => {
             if (Utils.isDefined(subscriptionGroup)) {
                 messageSet.forEach((message) => {
-                    me.emit(Kafka.MESSAGE_EVENT, subscriber, topic, message.message.value, partition);
+                    const payload = message.message.value.toString();
+
+                    me.outputThroughputWatcher.calculate(payload);
+                    me.emit(Kafka.MESSAGE_EVENT, subscriber, topic, payload, partition);
                 });
             } else {
                 const subscriptionSet = me.subscriptionMap.get(topic);
@@ -431,7 +452,10 @@ class Kafka extends EventEmitter {
                 if (subscriptionSet) {
                     subscriptionSet.forEach((subscriberId) => {
                         messageSet.forEach((message) => {
-                            me.emit(Kafka.MESSAGE_EVENT, subscriberId, topic, message.message.value, partition);
+                            const payload = message.message.value.toString();
+
+                            me.outputThroughputWatcher.calculate(payload);
+                            me.emit(Kafka.MESSAGE_EVENT, subscriberId, topic, payload, partition);
                         });
                     });
                 }
@@ -490,10 +514,13 @@ class Kafka extends EventEmitter {
         let throughput = 0;
         let totalSize = 0;
         let prevTimeStamp = 0;
+        let resetTimerHandler = null;
 
         return {
             calculate (payload) {
-                totalSize += sizeof(payload);
+                clearTimeout(resetTimerHandler);
+
+                totalSize += payload.length;
 
                 const timeStamp = new Date().getTime();
 
@@ -504,6 +531,8 @@ class Kafka extends EventEmitter {
                     totalSize = 0;
                     prevTimeStamp = timeStamp;
                 }
+
+                resetTimerHandler = setTimeout(() => throughput = 0, intervalMs);
             },
 
             getThroughput () {

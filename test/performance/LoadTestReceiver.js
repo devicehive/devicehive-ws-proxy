@@ -8,7 +8,7 @@ const TEST_MESSAGE = MessageBuilder.createNotification(new NotificationCreatePay
     partition: Config.TEST_PARTITION,
     message: JSON.stringify(Config.TEST_MESSAGE)
 }));
-const TEST_MESSAGE_SIZE = new Buffer(TEST_MESSAGE.toString()).length;
+const TEST_MESSAGE_SIZE = JSON.stringify(TEST_MESSAGE).length;
 const TOTAL_MESSAGES = Config.TOTAL_MESSAGES_AMOUNT;
 
 process.on(`message`, (message) => {
