@@ -55,7 +55,7 @@ internalCommunicatorFacade.on(InternalCommunicatorFacade.MESSAGE_EVENT, (clientI
     webSocketServer.send(clientId, new Message({
         type: MessageUtils.NOTIFICATION_TYPE,
         status: MessageUtils.SUCCESS_STATUS,
-        payload: { message: payload.toString() }
+        payload: { message: payload }
     }).toString());
 });
 
@@ -175,7 +175,8 @@ function processHealthTypeMessage(clientId, message) {
                 isAvailable: internalCommunicatorFacade.isAvailable() ?
                     CONST.AVAILABLE_STATUS :
                     CONST.NOT_AVAILABLE_STATUS,
-                inputLoad: internalCommunicatorFacade.getAverageInputLoad()
+                inputLoad: internalCommunicatorFacade.getAverageInputLoad(),
+                outputLoad: internalCommunicatorFacade.getAverageOutputLoad()
             }
         }
     }).toString());

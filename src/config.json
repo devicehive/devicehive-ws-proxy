@@ -6,5 +6,5 @@
     "COMMUNICATOR_TYPE": "kafka",
     "APP_LOG_LEVEL": "info",
     "ENABLE_PLUGIN_MANAGER": false,
-    "CLUSTER_WORKERS": "cpu"
+    "CLUSTER_WORKERS": 2
 }

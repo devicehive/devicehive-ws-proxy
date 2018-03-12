@@ -18,7 +18,7 @@
         "devicehive-proxy-message": "^1.0.11",
         "fifo": "^2.3.0",
         "json-evn-configurator": "^1.0.6",
-        "jsonwebtoken": "^8.1.1",
+        "jsonwebtoken": "^8.2.0",
         "lodash": "^4.17.5",
         "no-kafka": "^3.2.8",
         "object-sizeof": "^1.2.0",
