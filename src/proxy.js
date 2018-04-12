@@ -14,6 +14,9 @@ const pluginManager = new PluginManager(!Config.ENABLE_PLUGIN_MANAGER);
 const internalCommunicatorFacade = new InternalCommunicatorFacade(Config.COMMUNICATOR_TYPE);
 const webSocketServer = new WebSocketServer();
 
+const hash = require(`string-hash`);
+
+const timeLogMap = new Map();
 
 webSocketServer.on(WebSocketServer.CLIENT_CONNECT_EVENT, (clientId) => {
     logger.info(`New WebSocket client connected. ID: ${clientId}`);
@@ -21,10 +24,16 @@ webSocketServer.on(WebSocketServer.CLIENT_CONNECT_EVENT, (clientId) => {
 
 webSocketServer.on(WebSocketServer.CLIENT_MESSAGE_EVENT, (clientId, data) => {
     try {
+        console.time(`JSON parsing`);
         const messages = JSON.parse(data);
+        console.timeEnd(`JSON parsing`);
 
         Utils.forEach(messages, (message) => {
             const normalizedMessage = Message.normalize(message);
+
+            if (normalizedMessage.payload && normalizedMessage.payload.message) {
+                timeLogMap.set(hash(normalizedMessage.payload.message), process.hrtime());
+            }
 
             pluginManager.checkConstraints(clientId, normalizedMessage);
 
@@ -52,10 +61,22 @@ webSocketServer.on(WebSocketServer.CLIENT_DISCONNECT_EVENT, (clientId) => {
 });
 
 internalCommunicatorFacade.on(InternalCommunicatorFacade.MESSAGE_EVENT, (clientId, topic, payload) => {
+    const payloadString = payload.toString();
+    const payloadHash = hash(payloadString);
+    const NS_PER_SEC = 1e9;
+    const NS_PER_M_SEC = 1e6;
+    const startTime = timeLogMap.get(payloadHash);
+
+    if (startTime) {
+        const tt = process.hrtime(startTime);
+        console.log(`Notification processed in: ${(tt[0] * NS_PER_SEC + tt[1]) / NS_PER_M_SEC} ms`);
+        timeLogMap.delete(payloadHash);
+    }
+
     webSocketServer.send(clientId, new Message({
         type: MessageUtils.NOTIFICATION_TYPE,
         status: MessageUtils.SUCCESS_STATUS,
-        payload: { message: payload }
+        payload: { message: payloadString }
     }).toString());
 });
 
