@@ -1,11 +1,15 @@
 const Config = require(`./config`);
 const status = require('node-status');
+const uuid = require(`uuid`);
 const { fork } = require('child_process');
 const { MessageBuilder } = require(`devicehive-proxy-message`);
 const { NotificationCreatePayload } = require(`devicehive-proxy-message`).payload;
 
 const receiver = fork('LoadTestReceiver.js');
 const sender = fork('LoadTestSender.js');
+const uniqueUuid = uuid();
+
+receiver.send({ action: "start", uuid: uniqueUuid });
 
 function multipleTrigger (count, action) {
     let doubleCounter = 0;
@@ -24,7 +28,7 @@ const TEST_MESSAGE = MessageBuilder.createNotification(new NotificationCreatePay
     partition: Config.TEST_PARTITION,
     message: JSON.stringify(Config.TEST_MESSAGE)
 }));
-const TEST_MESSAGE_SIZE = new Buffer(TEST_MESSAGE.toString()).length;
+const TEST_MESSAGE_SIZE = JSON.stringify(TEST_MESSAGE).length;
 const TOTAL_MESSAGES = Config.TOTAL_MESSAGES_AMOUNT;
 const EXPECTED_THROUGHPUT = TEST_MESSAGE_SIZE * Config.MESSAGE_PER_SECOND;
 
@@ -54,12 +58,7 @@ const throughputMonitor = status.addItem('throughputMonitor', { custom: () => {
 });
 
 const readyTrigger = multipleTrigger(2, () => {
-    status.start({
-        interval: 200,
-        pattern: ' Uptime: {uptime} | {spinner.cyan} | Sent out: {sendMonitor.bar} | Received: {receiveMonitor.bar} | Actual throughput: {throughputMonitor.green.custom} B/s | Largest latency: {latencyMonitor.red.custom} s '
-    });
-
-    sender.send({ action: "start" });
+    sender.send({ action: "start", uuid: uniqueUuid });
 });
 
 const finishTrigger = multipleTrigger(2, () => {
@@ -93,6 +92,12 @@ sender.on(`message`, (message) => {
     switch (message.action) {
         case "ready":
             readyTrigger();
+            break;
+        case "started":
+            status.start({
+                interval: 200,
+                pattern: ' Uptime: {uptime} | {spinner.cyan} | Sent out: {sendMonitor.bar} | Received: {receiveMonitor.bar} | Actual throughput: {throughputMonitor.green.custom} B/s | Largest latency: {latencyMonitor.red.custom} s '
+            });
             break;
         case "sent":
             sendMonitor.inc(message.amount - sendMonitor.count);

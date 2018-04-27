@@ -5,6 +5,7 @@ const WebSocket = require(`ws`);
 const Utils = require(`../utils`);
 const debug = require(`debug`)(`websocketserver`);
 const shortId = require('shortid');
+const http = require(`http`);
 
 
 /**
@@ -28,27 +29,45 @@ class WebSocketServer extends EventEmitter {
 
 		const me = this;
 
-		me.isReady = false;
-		me.clientIdMap = new Map();
-		me.wsServer = new WebSocket.Server({
-			host: ProxyConfig.WEB_SOCKET_SERVER_HOST,
-			port: ProxyConfig.WEB_SOCKET_SERVER_PORT,
-			clientTracking: true
-		});
+        me.isReady = false;
+        me.clientIdMap = new Map();
 
-		me.wsServer.on(`connection`, (ws, req) => me._processNewConnection(ws));
+        if (!process.env.IS_CLUSTER_MODE) {
+            me.wsServer = new WebSocket.Server({
+                host: ProxyConfig.WEB_SOCKET_SERVER_HOST,
+                port: ProxyConfig.WEB_SOCKET_SERVER_PORT,
+                clientTracking: true
+            });
+        } else {
+            const server = new http.createServer().listen(0, ProxyConfig.WEB_SOCKET_SERVER_HOST);
 
-		me.wsServer.on(`error`, (error) => {
-			debug(`Server error ${error}`);
-			me.isReady = true
-		});
+            me.wsServer = new WebSocket.Server({ server });
 
-		me.wsServer.on(`listening`, () => {
-			debug(`Server starts listening on ${ProxyConfig.WEB_SOCKET_SERVER_HOST}:${ProxyConfig.WEB_SOCKET_SERVER_PORT}`);
-			me.isReady = true
-		});
+            process.on('message', (message, connection) => {
+                if (message === CONST.STICKY_SESSION_TAG) {
+                    server.emit('connection', connection);
+                    connection.resume();
 
-		me._setupPingInterval();
+                    debug(`Sticky-session. Connection received`);
+				}
+            });
+
+            debug(`WebSocket server started in cluster mode`);
+		}
+
+        me.wsServer.on(`connection`, (ws) => me._processNewConnection(ws));
+
+        me.wsServer.on(`error`, (error) => {
+            debug(`Server error ${error}`);
+            me.isReady = true
+        });
+
+        me.wsServer.on(`listening`, () => {
+            debug(`Server starts listening on ${ProxyConfig.WEB_SOCKET_SERVER_HOST}:${ProxyConfig.WEB_SOCKET_SERVER_PORT}`);
+            me.isReady = true
+        });
+
+        me._setupPingInterval();
 	}
 
     /**

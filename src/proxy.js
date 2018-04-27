@@ -15,9 +15,6 @@ const internalCommunicatorFacade = new InternalCommunicatorFacade(Config.COMMUNI
 const webSocketServer = new WebSocketServer();
 
 
-initProcessExitHandlers();
-
-
 webSocketServer.on(WebSocketServer.CLIENT_CONNECT_EVENT, (clientId) => {
     logger.info(`New WebSocket client connected. ID: ${clientId}`);
 });
@@ -58,7 +55,7 @@ internalCommunicatorFacade.on(InternalCommunicatorFacade.MESSAGE_EVENT, (clientI
     webSocketServer.send(clientId, new Message({
         type: MessageUtils.NOTIFICATION_TYPE,
         status: MessageUtils.SUCCESS_STATUS,
-        payload: { message: payload.toString() }
+        payload: { message: payload }
     }).toString());
 });
 
@@ -174,9 +171,13 @@ function processHealthTypeMessage(clientId, message) {
                 CONST.AVAILABLE_STATUS :
                 CONST.NOT_AVAILABLE_STATUS,
             messageBufferFillPercentage: messageBuffer.getFillPercentage(),
-            communicator: internalCommunicatorFacade.isAvailable() ?
-                CONST.AVAILABLE_STATUS :
-                CONST.NOT_AVAILABLE_STATUS
+            communicator: {
+                isAvailable: internalCommunicatorFacade.isAvailable() ?
+                    CONST.AVAILABLE_STATUS :
+                    CONST.NOT_AVAILABLE_STATUS,
+                inputLoad: internalCommunicatorFacade.getAverageInputLoad(),
+                outputLoad: internalCommunicatorFacade.getAverageOutputLoad()
+            }
         }
     }).toString());
 }
@@ -372,22 +373,4 @@ function respondWithFailure(clientId, errorMessage, message = {}, code) {
             code: code
         }
     }).toString());
-}
-
-
-/**
- * Init process exit handlers. Log errors
- */
-function initProcessExitHandlers() {
-    process.stdin.resume();
-
-    function exitHandler(error) {
-        if (error) {
-            logger.err(`Process error: ${error.message}`);
-            logger.err(error.stack);
-        }
-    }
-
-    process.on('exit', exitHandler);
-    process.on('uncaughtException', exitHandler);
 }

@@ -78,6 +78,16 @@ class ProxyClient extends EventEmitter {
 
         me.ws.send(message.toString());
     }
+
+    /**
+     * Sends message to WS Proxy
+     * @param message
+     */
+    sendRaw(message) {
+        const me = this;
+
+        me.ws.send(message);
+    }
 }
 
 
