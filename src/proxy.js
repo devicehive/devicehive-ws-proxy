@@ -299,7 +299,7 @@ function processNotificationCreateAction(clientId, message) {
     internalCommunicatorFacade.send({
         topic: message.payload.topic,
         message: { value: message.payload.message },
-        partition: message.payload.partition
+        //partition: message.payload.partition
     }).then(() => {
         webSocketServer.send(clientId, new Message({
             id: message.id,
