@@ -102,9 +102,10 @@ class PluginManager extends EventEmitter {
     updatePlugin(pluginKey, status) {
         const me = this;
         const tokenPayload = me.pluginKeyTokenPayloadMap.get(pluginKey);
+        const pluginToken = me.pluginKeyTokenMap.get(pluginKey);
 
         return new Promise((resolve, reject) => {
-            if (tokenPayload) {
+            if (tokenPayload && pluginToken) {
                 const queryString = Utils.queryBuilder({
                     status: status,
                     topicName: tokenPayload.topic
@@ -114,7 +115,7 @@ class PluginManager extends EventEmitter {
                     method: `PUT`,
                     uri: `${Config.PLUGIN_MANAGEMENT_SERVICE_ENDPOINT}/plugin${queryString}`,
                     headers: {
-                        Authorization: `Bearer ${me.pluginKeyTokenMap.get(pluginKey)}`
+                        Authorization: `Bearer ${pluginToken}`
                     }
                 }, (error, response, body) => {
                     const requestError = error ? error : body ? JSON.parse(body).error : null;
@@ -129,8 +130,6 @@ class PluginManager extends EventEmitter {
                         resolve();
                     }
                 });
-            } else {
-                reject(`No plugin token payload`);
             }
         });
     }
@@ -206,7 +205,8 @@ class PluginManager extends EventEmitter {
         const me = this;
 
         if (me.isEnabled()) {
-            me.updatePlugin(pluginKey, PluginManager.PLUGIN_INACTIVE_STATUS);
+            me.updatePlugin(pluginKey, PluginManager.PLUGIN_INACTIVE_STATUS)
+                .catch((error) => debug(`Error while updating plugin ${pluginKey} to inactive state`));
             me.pluginKeyTokenPayloadMap.delete(pluginKey);
             me.pluginKeyTokenMap.delete(pluginKey);
         }
