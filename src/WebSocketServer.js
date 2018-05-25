@@ -5,7 +5,7 @@ const WebSocket = require(`ws`);
 const Utils = require(`../utils`);
 const debug = require(`debug`)(`websocketserver`);
 const shortId = require('shortid');
-const http = require(`http`);
+const url = require('url');
 
 
 /**
@@ -31,6 +31,7 @@ class WebSocketServer extends EventEmitter {
 
         me.isReady = false;
         me.clientIdMap = new Map();
+        me.wsServer = null;
 
         if (!process.env.IS_CLUSTER_MODE) {
             me.wsServer = new WebSocket.Server({
@@ -38,34 +39,41 @@ class WebSocketServer extends EventEmitter {
                 port: ProxyConfig.WEB_SOCKET_SERVER_PORT,
                 clientTracking: true
             });
+
+            me.wsServer.on(`connection`, (ws) => me._processNewConnection(ws));
+
+            me.wsServer.on(`error`, (error) => {
+                debug(`Server error ${error}`);
+                me.isReady = true
+            });
+
+            me.wsServer.on(`listening`, () => {
+                debug(`Server starts listening on ${ProxyConfig.WEB_SOCKET_SERVER_HOST}:${ProxyConfig.WEB_SOCKET_SERVER_PORT}`);
+                me.isReady = true
+            });
         } else {
-            const server = new http.createServer().listen(0, ProxyConfig.WEB_SOCKET_SERVER_HOST);
+            process.on(`message`, message => {
+                const port = message.port;
 
-            me.wsServer = new WebSocket.Server({ server });
+                if (message.message === `port`) {
+                    me.wsServer = new WebSocket.Server({ port: port });
 
-            process.on('message', (message, connection) => {
-                if (message === CONST.STICKY_SESSION_TAG) {
-                    server.emit('connection', connection);
-                    connection.resume();
+                    me.wsServer.on(`connection`, (ws, req) => me._processNewConnection(ws, req));
 
-                    debug(`Sticky-session. Connection received`);
-				}
+                    me.wsServer.on(`error`, (error) => {
+                        debug(`Server error ${error}`);
+                        me.isReady = true
+                    });
+
+                    me.wsServer.on(`listening`, () => {
+                        debug(`Server starts listening on ${ProxyConfig.WEB_SOCKET_SERVER_HOST}:${ProxyConfig.WEB_SOCKET_SERVER_PORT}`);
+                        me.isReady = true
+                    });
+                }
             });
 
             debug(`WebSocket server started in cluster mode`);
 		}
-
-        me.wsServer.on(`connection`, (ws) => me._processNewConnection(ws));
-
-        me.wsServer.on(`error`, (error) => {
-            debug(`Server error ${error}`);
-            me.isReady = true
-        });
-
-        me.wsServer.on(`listening`, () => {
-            debug(`Server starts listening on ${ProxyConfig.WEB_SOCKET_SERVER_HOST}:${ProxyConfig.WEB_SOCKET_SERVER_PORT}`);
-            me.isReady = true
-        });
 
         me._setupPingInterval();
 	}
@@ -108,11 +116,13 @@ class WebSocketServer extends EventEmitter {
     /**
 	 * Sets up new WebSocket connection. Adds message, close amd pong listeners
      * @param ws
+     * @param req
      * @private
      */
-	_processNewConnection(ws) {
+	_processNewConnection(ws, req) {
 		const me = this;
 		const clientId = shortId.generate();
+        const { type, role } = url.parse(req.url, true).query;
 
 		me.clientIdMap.set(clientId, ws);
         ws.isAlive = true;
@@ -129,6 +139,7 @@ class WebSocketServer extends EventEmitter {
 			debug(`Client ${clientId} has closed the connection with code: ${code} and reason: ${reason}`);
 			me.clientIdMap.delete(clientId);
 			me.emit(WebSocketServer.CLIENT_DISCONNECT_EVENT, clientId);
+			process.send({ message: `close`, type, role });
 		});
 
         ws.on(`pong`, () => {
