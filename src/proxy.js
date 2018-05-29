@@ -34,7 +34,7 @@ webSocketServer.on(WebSocketServer.CLIENT_MESSAGE_EVENT, (clientId, data) => {
                     message: normalizedMessage
                 });
             } else {
-                messageBuffer.push({clientId: clientId, message: normalizedMessage});
+                messageBuffer.push({ clientId: clientId, message: normalizedMessage });
             }
 
             respondWithAcknowledgment(clientId, normalizedMessage);
@@ -74,7 +74,7 @@ messageBuffer.on(MessageBuffer.POLL_EVENT, (messages) => {
  * @param clientId
  * @param message
  */
-function processMessage({clientId, message}) {
+function processMessage({ clientId, message }) {
     switch (message.type) {
         case MessageUtils.TOPIC_TYPE:
             processTopicTypeMessage(clientId, message);

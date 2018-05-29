@@ -1,3 +1,5 @@
+const debug = require(`debug`)(`loadbalancer`);
+
 /**
  *
  */
@@ -42,6 +44,8 @@ class LoadBalancer {
 
         me.workersMap.get(loadMap.key)[tag]++;
 
+        debug(`The key: ${loadMap.key} will be used as worker for the tag: ${tag}`);
+
         return loadMap.key;
     }
 
@@ -54,6 +58,8 @@ class LoadBalancer {
     freeWorker(number, type, role) {
         const me = this;
         const tag = type && role ? `${type}-${role}` : 'unknown';
+
+        debug(`The key: ${number} will be freed from the tag: ${tag}`);
 
         me.workersMap.get(number)[tag]--;
     }

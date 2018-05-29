@@ -4,8 +4,6 @@ const Utils = require(`../../utils`);
 const NoKafka = require(`no-kafka`);
 const uuid = require(`uuid/v1`);
 const debug = require(`debug`)(`kafka`);
-const sizeof = require('object-sizeof');
-
 
 
 /**
