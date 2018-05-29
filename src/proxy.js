@@ -331,7 +331,7 @@ function processPluginAuthenticateAction(clientId, message) {
                 logger.info(`Client plugin ${clientId} has been authenticated`);
             })
             .catch((error) => {
-                respondWithFailure(clientId, error.message, message);
+                respondWithFailure(clientId, error.message || error, message);
             });
     } else {
         respondWithFailure(clientId, `Payload should consist property "token" to authenticate plugin`, message);

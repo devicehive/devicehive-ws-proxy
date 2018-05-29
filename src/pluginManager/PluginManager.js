@@ -118,7 +118,12 @@ class PluginManager extends EventEmitter {
                         Authorization: `Bearer ${pluginToken}`
                     }
                 }, (error, response, body) => {
-                    const requestError = error ? error : body ? JSON.parse(body).error : null;
+                    const bodyObject = error ? {} : JSON.parse(body);
+                    let requestError = error ? error : body ? bodyObject.error : null;
+
+                    if (bodyObject.error && bodyObject.message) {
+                        requestError = `Error code: ${bodyObject.error}. ${bodyObject.message}`;
+                    }
 
                     if (requestError) {
                         debug(`Error while updating plugin (${pluginKey}) status: ${requestError}`);
