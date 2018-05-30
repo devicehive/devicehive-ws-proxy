@@ -20,7 +20,7 @@ if (cluster.isMaster) {
     const clusterWorkers = Config.CLUSTER_WORKERS;
     const amountOfWorkers = clusterWorkers === Const.CPU_TAG ? os.cpus().length : clusterWorkers;
 
-    const ports = Array.from({length: amountOfWorkers}, (value, index) => Config.WS_WORKER_BASE_PORT + index);
+    const ports = Array.from({length: amountOfWorkers}, (value, index) => Number(Config.WS_WORKER_BASE_PORT) + index);
     const lb = new LoadBalancer(amountOfWorkers);
     const workers = [];
     const spawn = (i) => {

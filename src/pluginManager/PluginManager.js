@@ -118,7 +118,7 @@ class PluginManager extends EventEmitter {
                         Authorization: `Bearer ${pluginToken}`
                     }
                 }, (error, response, body) => {
-                    const bodyObject = error ? {} : JSON.parse(body);
+                    const bodyObject = !error && body ? JSON.parse(body) : {};
                     let requestError = error ? error : body ? bodyObject.error : null;
 
                     if (bodyObject.error && bodyObject.message) {
