@@ -58,6 +58,7 @@ internalCommunicatorFacade.on(InternalCommunicatorFacade.MESSAGE_EVENT, (clientI
     webSocketServer.send(clientId, new Message({
         type: MessageUtils.NOTIFICATION_TYPE,
         status: MessageUtils.SUCCESS_STATUS,
+        srcTopic: topic,
         payload: { message: payload.toString() }
     }).toString());
 });
