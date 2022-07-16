@@ -1,12 +1,11 @@
 const Config = require(`../../config`).pluginManager;
 const Utils = require(`../../utils`);
-const { MessageUtils, payload } = require(`devicehive-proxy-message`);
-const AuthenticationPluginError = require(`../../lib/errors/plugin/AuthenticationPluginError`);
+const {MessageUtils, payload} = require(`devicehive-proxy-message`);
 const NotAuthorizedPluginError = require(`../../lib/errors/plugin/NotAuthorizedPluginError`);
 const NoPermissionsPluginError = require(`../../lib/errors/plugin/NoPermissionsPluginError`);
 const NotEnabledPluginError = require(`../../lib/errors/plugin/NotEnabledPluginError`);
 const EventEmitter = require(`events`);
-const request = require(`request`);
+const axios = require(`axios`);
 const jwt = require('jsonwebtoken');
 const debug = require(`debug`)(`pluginmanager`);
 const TokenPayload = payload.TokenPayload;
@@ -17,9 +16,17 @@ const TokenPayload = payload.TokenPayload;
  */
 class PluginManager extends EventEmitter {
 
-    static get PLUGIN_ACTIVE_STATUS() { return `ACTIVE`; }
-    static get PLUGIN_INACTIVE_STATUS() { return `INACTIVE`; }
-    static get PLUGIN_AUTHENTICATE_RESOURCE_PATH() { return `/token/plugin/authenticate`; }
+    static get PLUGIN_ACTIVE_STATUS() {
+        return `ACTIVE`;
+    }
+
+    static get PLUGIN_INACTIVE_STATUS() {
+        return `INACTIVE`;
+    }
+
+    static get PLUGIN_AUTHENTICATE_RESOURCE_PATH() {
+        return `/token/plugin/authenticate`;
+    }
 
     /**
      * Creates new PluginManager
@@ -44,46 +51,29 @@ class PluginManager extends EventEmitter {
      * @param token
      * @returns {Promise<any>}
      */
-    authenticate(pluginKey, token) {
+    async authenticate(pluginKey, token) {
         const me = this;
 
-        return new Promise((resolve, reject) => {
-            if (!me.isEnabled()) {
-                reject(new NotEnabledPluginError());
-            } else {
-                request({
-                    method: `GET`,
-                    uri: `${Config.AUTH_SERVICE_ENDPOINT}${PluginManager.PLUGIN_AUTHENTICATE_RESOURCE_PATH}?token=${token}`
-                }, (err, response, body) => {
-                    try {
-                        if (err) {
-                            debug(`Unexpected error: ${err.message}`);
-                            reject(err);
-                        } else {
-                            const authenticationResponse = JSON.parse(body);
+        if (!me.isEnabled()) {
+            throw new NotEnabledPluginError();
+        } else {
+            try {
+                await axios.get(`${Config.AUTH_SERVICE_ENDPOINT}${PluginManager.PLUGIN_AUTHENTICATE_RESOURCE_PATH}?token=${token}`)
 
-                            if (!err && response.statusCode === 200) {
-                                const tokenPayload = TokenPayload.normalize(jwt.decode(token).payload);
+                const tokenPayload = TokenPayload.normalize(jwt.decode(token, {}).payload);
 
-                                debug(`Plugin with key: ${pluginKey} has been authenticated`);
+                debug(`Plugin with key: ${pluginKey} has been authenticated`);
 
-                                me.pluginKeyTokenMap.set(pluginKey, token);
-                                me.pluginKeyTokenPayloadMap.set(pluginKey, tokenPayload);
-                                me.updatePlugin(pluginKey, PluginManager.PLUGIN_ACTIVE_STATUS);
+                me.pluginKeyTokenMap.set(pluginKey, token);
+                me.pluginKeyTokenPayloadMap.set(pluginKey, tokenPayload);
+                me.updatePlugin(pluginKey, PluginManager.PLUGIN_ACTIVE_STATUS);
 
-                                resolve(tokenPayload);
-                            } else {
-                                debug(`Plugin with key: ${pluginKey} has not been authenticated. Reason: ${authenticationResponse.message}`);
-                                reject(new AuthenticationPluginError(authenticationResponse.message));
-                            }
-                        }
-                    } catch (error) {
-                        debug(`Unexpected error: ${error.message}`);
-                        reject(error);
-                    }
-                });
+                return tokenPayload;
+            } catch (error) {
+                debug(`Unexpected error: ${error.message}`);
+                throw error;
             }
-        });
+        }
     }
 
     /**
@@ -91,31 +81,27 @@ class PluginManager extends EventEmitter {
      * @param pluginKey
      * @param status
      */
-    updatePlugin(pluginKey, status) {
+    async updatePlugin(pluginKey, status) {
         const me = this;
         const tokenPayload = me.pluginKeyTokenPayloadMap.get(pluginKey);
 
         if (tokenPayload) {
-            const queryString = Utils.queryBuilder({
-                status: status,
-                topicName: tokenPayload.topic
-            });
+            try {
+                const queryString = Utils.queryBuilder({
+                    status: status,
+                    topicName: tokenPayload.topic
+                });
 
-            request({
-                method: `PUT`,
-                uri: `${Config.PLUGIN_MANAGEMENT_SERVICE_ENDPOINT}/plugin${queryString}`,
-                headers: {
-                    Authorization: `Bearer ${me.pluginKeyTokenMap.get(pluginKey)}`
-                }
-            }, (error, response, body) => {
-                const requestError = error ? error : body ? JSON.parse(body).error : null;
+                await axios.put(`${Config.PLUGIN_MANAGEMENT_SERVICE_ENDPOINT}/plugin${queryString}`, {
+                    headers: {
+                        Authorization: `Bearer ${me.pluginKeyTokenMap.get(pluginKey)}`
+                    }
+                })
 
-                if (requestError) {
-                    debug(`Error while updating plugin (${pluginKey}) status: ${requestError}`);
-                } else {
-                    debug(`Plugin ${pluginKey} has changed it's state to ${status}`);
-                }
-            });
+                debug(`Plugin ${pluginKey} has changed it's state to ${status}`);
+            } catch(error) {
+                debug(`Error while updating plugin (${pluginKey}) status: ${error}`);
+            }
         }
     }
 

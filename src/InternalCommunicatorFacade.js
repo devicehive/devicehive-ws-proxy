@@ -1,5 +1,6 @@
 const EventEmitter = require(`events`);
 const Kafka = require(`./kafka/Kafka`);
+const Franz = require("./franz/Franz.js").Franz;
 const debug = require(`debug`)(`internalcommunicatorfacade`);
 
 
@@ -16,7 +17,8 @@ class InternalCommunicatorFacade extends EventEmitter {
     static get NOT_AVAILABLE_EVENT() { return `notAvailable`; }
 
     static get KAFKA_COMMUNICATOR() { return `kafka`; }
-    static get DEFAULT_COMMUNICATOR() { return InternalCommunicatorFacade.KAFKA_COMMUNICATOR; }
+    static get FRANZ_COMMUNICATOR() { return `franz`; }
+    static get DEFAULT_COMMUNICATOR() { return InternalCommunicatorFacade.FRANZ_COMMUNICATOR; }
 
 	static createCommunicator(communicatorType) {
 		let communicator;
@@ -27,11 +29,14 @@ class InternalCommunicatorFacade extends EventEmitter {
 			case InternalCommunicatorFacade.KAFKA_COMMUNICATOR:
                 communicator =  new Kafka();
 				break;
+			case InternalCommunicatorFacade.FRANZ_COMMUNICATOR:
+				communicator =  new Franz({});
+				break;
 			default:
                 debug(`${communicatorType} communicator is not supported. Will be used default communicator`);
 
                 communicatorType = InternalCommunicatorFacade.DEFAULT_COMMUNICATOR;
-                communicator = InternalCommunicatorFacade(communicatorType);
+                communicator = new InternalCommunicatorFacade(communicatorType);
 				break;
 		}
 
@@ -98,7 +103,6 @@ class InternalCommunicatorFacade extends EventEmitter {
     /**
 	 * Unsubscribes subscriberId from each topic in topicsList
      * @param subscriberId
-     * @param subscriptionGroup
      * @param topicsList
      * @returns {*|Promise|Promise<number[]>|Promise<boolean>}
      */

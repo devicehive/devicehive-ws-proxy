@@ -136,7 +136,7 @@ class WebSocketServer extends EventEmitter {
                 }
 
                 ws.isAlive = false;
-                ws.ping(Utils.EMPTY_STRING, false, true);
+                ws.ping(() => console.log('pinged'));
             });
         }, ProxyConfig.WEB_SOCKET_PING_INTERVAL_SEC * Utils.MS_IN_S);
     }
