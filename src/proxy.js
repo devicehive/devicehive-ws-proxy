@@ -48,9 +48,9 @@ webSocketServer.on(WebSocketServer.CLIENT_MESSAGE_EVENT, (clientId, data) => {
     }
 });
 
-webSocketServer.on(WebSocketServer.CLIENT_DISCONNECT_EVENT, (clientId) => {
+webSocketServer.on(WebSocketServer.CLIENT_DISCONNECT_EVENT, async (clientId) => {
     internalCommunicatorFacade.removeSubscriber(clientId);
-    pluginManager.removeAuthentication(clientId);
+    await pluginManager.removeAuthentication(clientId);
     logger.info(`WebSocket client has been disconnected. ID: ${clientId}`);
 });
 

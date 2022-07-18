@@ -21,7 +21,6 @@ await consumer.subscribe({ topics: [topic] });
 
 await consumer.run({
     eachMessage: async ({ message}) => {
-        console.log(id);
         const decodedMessage = encoder.decode(message.value);
         parentPort.postMessage(decodedMessage);
     }

@@ -44,75 +44,68 @@ class InternalKafka extends EventEmitter {
     constructor() {
         super();
 
-        const me = this;
+        this.clientUUID = uuid();
+        this.isProducerReady = false;
+        this.isConsumerReady = false;
+        this.isAdminReady = false;
+        this.available = true;
+        this.subscriptionMap = new Map();
+        this.subscriptionGroupMap = new Map();
+        this.groupConsumersMap = new Map();
 
-        me.clientUUID = uuid();
-        me.isProducerReady = false;
-        me.isConsumerReady = false;
-        me.isAdminReady = false;
-        me.available = true;
-        me.subscriptionMap = new Map();
-        me.subscriptionGroupMap = new Map();
-        me.groupConsumersMap = new Map();
-
-        me.kafka = new Kafka({
-            clientId: me.clientUUID,
+        this.kafka = new Kafka({
+            clientId: this.clientUUID,
             brokers: KafkaConfig.KAFKA_HOSTS.split(','),
         })
 
-        me.admin = me.kafka.admin()
-        me.producer = me.kafka.producer({});
-        me.consumer = me.kafka.consumer({
-            groupId: `${KafkaConfig.CONSUMER_GROUP_ID_PREFIX}-${me.clientUUID}`,
+        this.admin = this.kafka.admin()
+        this.producer = this.kafka.producer({});
+        this.consumer = this.kafka.consumer({
+            groupId: `${KafkaConfig.CONSUMER_GROUP_ID_PREFIX}-${this.clientUUID}`,
             maxWaitTimeInMs: KafkaConfig.CONSUMER_MAX_WAIT_TIME,
             maxBytes: KafkaConfig.CONSUMER_MAX_BYTES
         });
 
         debug(`Started trying connect to server`);
 
-        me.admin.connect()
+        this.admin.connect()
             .then(() => {
-                me.isAdminReady = true;
+                this.isAdminReady = true;
                 debug(`Admin is ready`);
-                me.emit(`adminReady`);
+                this.emit(`adminReady`);
             })
             .catch((error) => {
                 debug(`Admin error: ${error}`);
-                me.isAdminReady = false;
+                this.isAdminReady = false;
             });
 
-        me.producer.connect()
+        this.producer.connect()
             .then(() => {
-                me.isProducerReady = true;
+                this.isProducerReady = true;
                 debug(`Producer is ready`);
-                me.emit(`producerReady`);
+                this.emit(`producerReady`);
             })
             .catch((error) => {
                 debug(`Producer error: ${error}`);
-                me.isProducerReady = false;
+                this.isProducerReady = false;
             });
 
-        me.consumer.connect()
+        this.consumer.connect()
             .then(async () => {
-                me.isConsumerReady = true;
+                this.isConsumerReady = true;
                 debug(`Consumer is ready`);
-                me.emit(`consumerReady`);
-                me.emit(InternalKafka.AVAILABLE_EVENT);
+                this.emit(`consumerReady`);
+                this.emit(InternalKafka.AVAILABLE_EVENT);
 
-                await me.consumer.run({
+                await this.consumer.run({
                     eachMessage: async ({ topic, partition, message }) =>
                         this._onMessage(topic, partition, message),
                 })
             })
             .catch((error) => {
                 debug(`Consumer error: ${error}`);
-                me.isConsumerReady = false;
+                this.isConsumerReady = false;
             });
-
-        me._metadata = null;
-        me._topicArray = [];
-        me._topicRequestSet = new Set();
-        me._topicRequestEmitter = new EventEmitter();
     }
 
     /**
@@ -153,7 +146,12 @@ class InternalKafka extends EventEmitter {
     async createTopics(topicsList) {
         const admin = await this.getAdmin();
 
-        await admin.createTopics({topics: topicsList.map(t => ({topic: t}))});
+        try {
+            await admin.createTopics({topics: topicsList.map(t => ({topic: t}))});
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
 
         return topicsList;
     }
@@ -183,7 +181,11 @@ class InternalKafka extends EventEmitter {
             return topicsList
         }
 
-        await this.createTopics(topicsList)
+        try {
+            await this.createTopics(topicsList);
+        } catch (error) {
+            console.log(error);
+        }
 
         topicsList.forEach((topic) => {
             const subscribersSet = this.subscriptionMap.get(topic) || new Set;
@@ -240,10 +242,11 @@ class InternalKafka extends EventEmitter {
             }))
         } else {
             await consumer.stop();
-            await Promise.all(Array.from(topicsToSubscribe).map(topic => consumer.subscribe({topic})))
+            await consumer.subscribe({ topics: Array.from(topicsToSubscribe) })
             await consumer.run({
-                eachMessage: async ({ topic, partition, message }) =>
-                    this._onMessage(topic, partition, message),
+                eachMessage: async ({ topic, partition, message }) => {
+                    this._onMessage(topic, partition, message)
+                }
             });
         }
 
@@ -302,7 +305,7 @@ class InternalKafka extends EventEmitter {
             });
         });
 
-        // await Promise.all(topicsToUnsubscribe.map(topicName => consumer.pause([{ topic: topicName }])));
+        // await consumer.pause(topicsToUnsubscribe.map(topicName => ({ topic: topicName })));
 
         topicsToUnsubscribe.forEach((topic) => {
             this.subscriptionMap.delete(topic);
@@ -324,7 +327,7 @@ class InternalKafka extends EventEmitter {
         return producer.send({
             topic: payload.topic,
             messages: [
-                { value: payload.message.value, partition: payload.partition }
+                { value: payload.message.value }
             ]
         });
     }

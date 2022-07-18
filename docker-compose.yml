@@ -1,124 +1,84 @@
 version: '3'
 
 services:
+  postgres:
+    image: postgres:10
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mysecretpassword
+      POSTGRES_DB: postgres
+
+  hazelcast:
+    image: devicehive/devicehive-hazelcast:${DH_TAG:-3.5.0}
+    ports:
+      - "5701:5701"
+    restart: unless-stopped
+    environment:
+      MAX_HEAP_SIZE: "512m"
+      MIN_HEAP_SIZE: "512m"
+
   zookeeper:
     image: docker.io/bitnami/zookeeper:3.8
     ports:
       - "2181:2181"
     environment:
       - ALLOW_ANONYMOUS_LOGIN=yes
-    networks:
-      - shared
-  kafka0:
+
+  kafka:
     image: docker.io/bitnami/kafka:3.1
-    container_name: kafka0
+    links:
+      - "zookeeper"
     ports:
-      - "9093:9093"
+      - "9092:9092"
     environment:
       - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CLIENT:PLAINTEXT,EXTERNAL:PLAINTEXT
-      - KAFKA_CFG_LISTENERS=CLIENT://:9092,EXTERNAL://:9093
-      - KAFKA_CFG_ADVERTISED_LISTENERS=CLIENT://kafka0:9092,PLAINTEXT://localhost:9093
+      - KAFKA_CFG_LISTENERS=CLIENT://:9092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=CLIENT://kafka:9092
       - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=CLIENT
       - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
       - ALLOW_PLAINTEXT_LISTENER=yes
-    depends_on:
-      - zookeeper
     restart: always
-    networks:
-      - shared
-  kafka1:
-    image: docker.io/bitnami/kafka:3.1
-    container_name: kafka1
-    ports:
-      - "9094:9094"
-    environment:
-      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CLIENT:PLAINTEXT,EXTERNAL:PLAINTEXT
-      - KAFKA_CFG_LISTENERS=CLIENT://:9092,EXTERNAL://:9094
-      - KAFKA_CFG_ADVERTISED_LISTENERS=CLIENT://kafka1:9092,PLAINTEXT://localhost:9094
-      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=CLIENT
-      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
-      - ALLOW_PLAINTEXT_LISTENER=yes
-    depends_on:
-      - zookeeper
-    restart: always
-    networks:
-      - shared
-  kafka2:
-    image: docker.io/bitnami/kafka:3.1
-    container_name: kafka2
-    ports:
-      - "9095:9095"
-    environment:
-      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CLIENT:PLAINTEXT,EXTERNAL:PLAINTEXT
-      - KAFKA_CFG_LISTENERS=CLIENT://:9092,EXTERNAL://:9095
-      - KAFKA_CFG_ADVERTISED_LISTENERS=CLIENT://kafka2:9092,PLAINTEXT://localhost:9095
-      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=CLIENT
-      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
-      - ALLOW_PLAINTEXT_LISTENER=yes
-    depends_on:
-      - zookeeper
-    restart: always
-    networks:
-      - shared
+
   kafka-ui:
     image: provectuslabs/kafka-ui
-    container_name: kafka-ui
+    links:
+      - "zookeeper"
+      - "kafka"
     ports:
-      - "8080:8080"
+      - "7080:8080"
     restart: always
     environment:
       - KAFKA_CLUSTERS_0_NAME=local
-      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=CLIENT://kafka0:9092,CLIENT://kafka1:9092,CLIENT://kafka2:9092
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=CLIENT://kafka:9092
       - KAFKA_CLUSTERS_0_ZOOKEEPER=zookeeper:2181
-    depends_on:
-      - zookeeper
-      - kafka0
-      - kafka1
-      - kafka2
-    networks:
-      - shared
-#  proxynginx:
-#    build: ./nginx
-#    container_name: proxynginx
-#    links:
-#      - internalproxy:internalproxy
-##      - externalproxy:externalproxy
-#    networks:
-#      - shared
-#    ports:
-#      - "3000:3000"
-#      - "3001:3001"
+
   internalproxy:
     build: .
     container_name: internalproxy
-    depends_on:
-      - kafka0
-      - kafka1
-      - kafka2
+    links:
+      - "kafka"
     environment:
-      KAFKA.KAFKA_HOSTS: "kafka0:9093,kafka1:9094,kafka2:9095"
-      FRANZ.KAFKA_HOSTS: "kafka0:9093,kafka1:9094,kafka2:9095"
-      PLUGIN_MANAGER.AUTH_SERVICE_ENDPOINT: "http://192.168.160.107:8090/dh/rest"
-      PLUGIN_MANAGER.PLUGIN_MANAGEMENT_SERVICE_ENDPOINT: "http://192.168.160.107:8110/dh/rest"
+      KAFKA.KAFKA_HOSTS: "kafka:9092"
+      FRANZ.KAFKA_HOSTS: "kafka:9092"
       PROXY.WEB_SOCKET_SERVER_HOST: "internalproxy"
       PROXY.ENABLE_PLUGIN_MANAGER: "false"
-      DEBUG: "kafka,pluginmanager"
+      DEBUG: "kafka"
     ports:
       - "3000:3000"
-    networks:
-      - shared
+
 #  externalproxy:
 #    build: .
 #    container_name: externalproxy
 #    environment:
-#      KAFKA.KAFKA_HOSTS: "kafka0:9092,kafka1:9092,kafka2:9092"
+#      KAFKA.KAFKA_HOSTS: "kafka:9093"
+#      FRANZ.KAFKA_HOSTS: "kafka:9093"
 #      PLUGIN_MANAGER.AUTH_SERVICE_ENDPOINT: "http://192.168.160.107:8090/dh/rest"
 #      PLUGIN_MANAGER.PLUGIN_MANAGEMENT_SERVICE_ENDPOINT: "http://192.168.160.107:8110/dh/rest"
 #      PROXY.WEB_SOCKET_SERVER_HOST: "externalproxy"
 #      PROXY.ENABLE_PLUGIN_MANAGER: "true"
 #      DEBUG: "kafka,pluginmanager"
-#    networks:
-#      - shared
-networks:
-  shared:
-    driver: bridge
+#    ports:
+#      - "3001:3001"

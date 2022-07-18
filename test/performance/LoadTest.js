@@ -24,7 +24,7 @@ const TEST_MESSAGE = MessageBuilder.createNotification(new NotificationCreatePay
     partition: Config.TEST_PARTITION,
     message: JSON.stringify(Config.TEST_MESSAGE)
 }));
-const TEST_MESSAGE_SIZE = new Buffer(TEST_MESSAGE.toString()).length;
+const TEST_MESSAGE_SIZE = new Buffer.from(TEST_MESSAGE.toString()).length;
 const TOTAL_MESSAGES = Config.TOTAL_MESSAGES_AMOUNT;
 const EXPECTED_THROUGHPUT = TEST_MESSAGE_SIZE * Config.MESSAGE_PER_SECOND;
 
@@ -44,11 +44,12 @@ let averageThroughput = -1;
 let latency = -1;
 const sendMonitor = status.addItem('sendMonitor', { max: TOTAL_MESSAGES });
 const receiveMonitor = status.addItem('receiveMonitor', { max: TOTAL_MESSAGES });
-const latencyMonitor = status.addItem('latencyMonitor', { custom: () => {
-        return latency === -1 ? `-` : latency.toFixed();
+
+status.addItem('latencyMonitor', { custom: () => {
+        return latency === -1 ? `-` : latency.toFixed(3);
     }
 });
-const throughputMonitor = status.addItem('throughputMonitor', { custom: () => {
+status.addItem('throughputMonitor', { custom: () => {
         return averageThroughput === -1 ? `-` : averageThroughput.toFixed();
     }
 });

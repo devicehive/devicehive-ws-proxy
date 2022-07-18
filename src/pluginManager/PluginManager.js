@@ -34,13 +34,11 @@ class PluginManager extends EventEmitter {
     constructor(disabled) {
         super();
 
-        const me = this;
+        this.disabled = disabled;
+        this.pluginKeyTokenMap = new Map();
+        this.pluginKeyTokenPayloadMap = new Map();
 
-        me.disabled = disabled;
-        me.pluginKeyTokenMap = new Map();
-        me.pluginKeyTokenPayloadMap = new Map();
-
-        if (me.isEnabled()) {
+        if (this.isEnabled()) {
             debug(`Plugin Manager is enabled`);
         }
     }
@@ -52,9 +50,7 @@ class PluginManager extends EventEmitter {
      * @returns {Promise<any>}
      */
     async authenticate(pluginKey, token) {
-        const me = this;
-
-        if (!me.isEnabled()) {
+        if (!this.isEnabled()) {
             throw new NotEnabledPluginError();
         } else {
             try {
@@ -64,9 +60,10 @@ class PluginManager extends EventEmitter {
 
                 debug(`Plugin with key: ${pluginKey} has been authenticated`);
 
-                me.pluginKeyTokenMap.set(pluginKey, token);
-                me.pluginKeyTokenPayloadMap.set(pluginKey, tokenPayload);
-                me.updatePlugin(pluginKey, PluginManager.PLUGIN_ACTIVE_STATUS);
+                this.pluginKeyTokenMap.set(pluginKey, token);
+                this.pluginKeyTokenPayloadMap.set(pluginKey, tokenPayload);
+
+                await this.updatePlugin(pluginKey, PluginManager.PLUGIN_ACTIVE_STATUS);
 
                 return tokenPayload;
             } catch (error) {
@@ -82,8 +79,7 @@ class PluginManager extends EventEmitter {
      * @param status
      */
     async updatePlugin(pluginKey, status) {
-        const me = this;
-        const tokenPayload = me.pluginKeyTokenPayloadMap.get(pluginKey);
+        const tokenPayload = this.pluginKeyTokenPayloadMap.get(pluginKey);
 
         if (tokenPayload) {
             try {
@@ -94,7 +90,7 @@ class PluginManager extends EventEmitter {
 
                 await axios.put(`${Config.PLUGIN_MANAGEMENT_SERVICE_ENDPOINT}/plugin${queryString}`, {
                     headers: {
-                        Authorization: `Bearer ${me.pluginKeyTokenMap.get(pluginKey)}`
+                        Authorization: `Bearer ${this.pluginKeyTokenMap.get(pluginKey)}`
                     }
                 })
 
@@ -115,17 +111,15 @@ class PluginManager extends EventEmitter {
      * @param message
      */
     checkConstraints(pluginKey, message) {
-        const me = this;
-
-        if (me.isEnabled()) {
-            const isAuthenticated = me.isAuthenticated(pluginKey);
+        if (this.isEnabled()) {
+            const isAuthenticated = this.isAuthenticated(pluginKey);
 
             if (!isAuthenticated &&
                 (message.type !== MessageUtils.PLUGIN_TYPE && message.action !== MessageUtils.AUTHENTICATE_ACTION) &&
                 message.type !== MessageUtils.HEALTH_CHECK_TYPE) {
                 throw new NotAuthorizedPluginError(message);
             } else if (isAuthenticated === true) {
-                const tokenPayload = me.getPluginTokenPayload(pluginKey);
+                const tokenPayload = this.getPluginTokenPayload(pluginKey);
 
                 switch (message.type) {
                     case MessageUtils.TOPIC_TYPE:
@@ -163,22 +157,19 @@ class PluginManager extends EventEmitter {
      * @returns {boolean}
      */
     isAuthenticated(pluginKey) {
-        const me = this;
-
-        return me.pluginKeyTokenPayloadMap.has(pluginKey);
+        return this.pluginKeyTokenPayloadMap.has(pluginKey);
     }
 
     /**
      * Removes authentication for plugin with pluginKey
      * @param pluginKey
      */
-    removeAuthentication(pluginKey) {
-        const me = this;
+    async removeAuthentication(pluginKey) {
+        if (this.isEnabled()) {
+            await this.updatePlugin(pluginKey, PluginManager.PLUGIN_INACTIVE_STATUS);
 
-        if (me.isEnabled()) {
-            me.updatePlugin(pluginKey, PluginManager.PLUGIN_INACTIVE_STATUS);
-            me.pluginKeyTokenPayloadMap.delete(pluginKey);
-            me.pluginKeyTokenMap.delete(pluginKey);
+            this.pluginKeyTokenPayloadMap.delete(pluginKey);
+            this.pluginKeyTokenMap.delete(pluginKey);
         }
     }
 
@@ -188,9 +179,7 @@ class PluginManager extends EventEmitter {
      * @returns {TokenPayload}
      */
     getPluginTokenPayload(pluginKey) {
-        const me = this;
-
-        return me.pluginKeyTokenPayloadMap.get(pluginKey);
+        return this.pluginKeyTokenPayloadMap.get(pluginKey);
     }
 
     /**
@@ -198,9 +187,7 @@ class PluginManager extends EventEmitter {
      * @returns {boolean}
      */
     isEnabled() {
-        const me = this;
-
-        return !me.disabled;
+        return !this.disabled;
     }
 }
 

@@ -26,29 +26,24 @@ class WebSocketServer extends EventEmitter {
 	constructor() {
 		super();
 
-		const me = this;
-
-		me.isReady = false;
-		me.clientIdMap = new Map();
-		me.wsServer = new WebSocket.Server({
+		this.clientIdMap = new Map();
+		this.wsServer = new WebSocket.Server({
 			host: ProxyConfig.WEB_SOCKET_SERVER_HOST,
 			port: ProxyConfig.WEB_SOCKET_SERVER_PORT,
 			clientTracking: true
 		});
 
-		me.wsServer.on(`connection`, (ws, req) => me._processNewConnection(ws));
+		this.wsServer.on(`connection`, (ws, req) => this._processNewConnection(ws));
 
-		me.wsServer.on(`error`, (error) => {
+		this.wsServer.on(`error`, (error) => {
 			debug(`Server error ${error}`);
-			me.isReady = true
 		});
 
-		me.wsServer.on(`listening`, () => {
+		this.wsServer.on(`listening`, () => {
 			debug(`Server starts listening on ${ProxyConfig.WEB_SOCKET_SERVER_HOST}:${ProxyConfig.WEB_SOCKET_SERVER_PORT}`);
-			me.isReady = true
 		});
 
-		me._setupPingInterval();
+		this._setupPingInterval();
 	}
 
     /**
@@ -56,9 +51,7 @@ class WebSocketServer extends EventEmitter {
      * @returns {Set}
      */
 	getClientsSet() {
-		const me = this;
-
-		return me.wsServer.clients;
+		return this.wsServer.clients;
 	}
 
     /**
@@ -67,9 +60,7 @@ class WebSocketServer extends EventEmitter {
      * @returns {String}
      */
 	getClientById(id) {
-		const me = this;
-
-		return me.clientIdMap.get(id);
+		return this.clientIdMap.get(id);
 	}
 
     /**
@@ -78,8 +69,7 @@ class WebSocketServer extends EventEmitter {
      * @param data
      */
 	send(id, data) {
-	    const me = this;
-	    const client = me.getClientById(id);
+	    const client = this.getClientById(id);
 
 	    if (client && client.readyState === WebSocketServer.WS_OPEN_STATE) {
 		    client.send(data);
@@ -92,24 +82,23 @@ class WebSocketServer extends EventEmitter {
      * @private
      */
 	_processNewConnection(ws) {
-		const me = this;
 		const clientId = shortId.generate();
 
-		me.clientIdMap.set(clientId, ws);
+		this.clientIdMap.set(clientId, ws);
         ws.isAlive = true;
 
 		debug(`New connection with id ${clientId} established`);
-		me.emit(WebSocketServer.CLIENT_CONNECT_EVENT, clientId);
+		this.emit(WebSocketServer.CLIENT_CONNECT_EVENT, clientId);
 
 		ws.on(`message`, (data) => {
 			debug(`New message from client ${clientId}`);
-			me.emit(WebSocketServer.CLIENT_MESSAGE_EVENT, clientId, data);
+			this.emit(WebSocketServer.CLIENT_MESSAGE_EVENT, clientId, data);
 		});
 
 		ws.on(`close`, (code, reason) => {
 			debug(`Client ${clientId} has closed the connection with code: ${code} and reason: ${reason}`);
-			me.clientIdMap.delete(clientId);
-			me.emit(WebSocketServer.CLIENT_DISCONNECT_EVENT, clientId);
+			this.clientIdMap.delete(clientId);
+			this.emit(WebSocketServer.CLIENT_DISCONNECT_EVENT, clientId);
 		});
 
         ws.on(`pong`, () => {
@@ -127,16 +116,14 @@ class WebSocketServer extends EventEmitter {
      * @private
      */
     _setupPingInterval() {
-        const me = this;
-
         setInterval(() => {
-            me.getClientsSet().forEach((ws) => {
+            this.getClientsSet().forEach((ws) => {
                 if (process.env.NODE_ENV !== CONST.DEVELOPMENT && ws.isAlive === false) {
                     return ws.terminate();
                 }
 
                 ws.isAlive = false;
-                ws.ping(() => console.log('pinged'));
+                ws.ping(() => {});
             });
         }, ProxyConfig.WEB_SOCKET_PING_INTERVAL_SEC * Utils.MS_IN_S);
     }

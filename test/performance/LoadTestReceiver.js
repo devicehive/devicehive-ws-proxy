@@ -8,7 +8,7 @@ const TEST_MESSAGE = MessageBuilder.createNotification(new NotificationCreatePay
     partition: Config.TEST_PARTITION,
     message: JSON.stringify(Config.TEST_MESSAGE)
 }));
-const TEST_MESSAGE_SIZE = new Buffer(TEST_MESSAGE.toString()).length;
+const TEST_MESSAGE_SIZE = new Buffer.from(TEST_MESSAGE.toString()).length;
 const TOTAL_MESSAGES = Config.TOTAL_MESSAGES_AMOUNT;
 
 const proxyClient = new ProxyClient(Config.PROXY_SERVER_URL);

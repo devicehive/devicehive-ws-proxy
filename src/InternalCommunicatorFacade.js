@@ -49,20 +49,18 @@ class InternalCommunicatorFacade extends EventEmitter {
 	constructor(communicatorType) {
 		super();
 
-		const me = this;
+		this.communicator = InternalCommunicatorFacade.createCommunicator(communicatorType);
 
-		me.communicator = InternalCommunicatorFacade.createCommunicator(communicatorType);
-
-		me.communicator.on(InternalCommunicatorFacade.MESSAGE_EVENT, (subscriberId, topic, payload) => {
-			me.emit(InternalCommunicatorFacade.MESSAGE_EVENT, subscriberId, topic, payload);
+		this.communicator.on(InternalCommunicatorFacade.MESSAGE_EVENT, (subscriberId, topic, payload) => {
+			this.emit(InternalCommunicatorFacade.MESSAGE_EVENT, subscriberId, topic, payload);
         });
 
-        me.communicator.on(InternalCommunicatorFacade.AVAILABLE_EVENT, () => {
-            me.emit(InternalCommunicatorFacade.AVAILABLE_EVENT);
+        this.communicator.on(InternalCommunicatorFacade.AVAILABLE_EVENT, () => {
+            this.emit(InternalCommunicatorFacade.AVAILABLE_EVENT);
         });
 
-        me.communicator.on(InternalCommunicatorFacade.NOT_AVAILABLE_EVENT, () => {
-            me.emit(InternalCommunicatorFacade.NOT_AVAILABLE_EVENT);
+        this.communicator.on(InternalCommunicatorFacade.NOT_AVAILABLE_EVENT, () => {
+            this.emit(InternalCommunicatorFacade.NOT_AVAILABLE_EVENT);
         });
 	}
 
@@ -72,9 +70,7 @@ class InternalCommunicatorFacade extends EventEmitter {
      * @returns {*}
      */
 	createTopics(topicsList) {
-		const me = this;
-
-		return me.communicator.createTopics(topicsList);
+		return this.communicator.createTopics(topicsList);
 	}
 
     /**
@@ -82,9 +78,7 @@ class InternalCommunicatorFacade extends EventEmitter {
      * @returns {*}
      */
 	listTopics() {
-		const me = this;
-
-		return me.communicator.listTopics();
+		return this.communicator.listTopics();
 	}
 
     /**
@@ -95,9 +89,7 @@ class InternalCommunicatorFacade extends EventEmitter {
      * @returns {*|Promise|Promise<void>|Promise<PushSubscription>}
      */
 	subscribe(subscriberId, subscriptionGroup, topicsList) {
-		const me = this;
-
-		return me.communicator.subscribe(subscriberId, subscriptionGroup, topicsList);
+		return this.communicator.subscribe(subscriberId, subscriptionGroup, topicsList);
 	}
 
     /**
@@ -107,9 +99,7 @@ class InternalCommunicatorFacade extends EventEmitter {
      * @returns {*|Promise|Promise<number[]>|Promise<boolean>}
      */
 	unsubscribe(subscriberId, topicsList) {
-		const me = this;
-
-		return me.communicator.unsubscribe(subscriberId, topicsList);
+		return this.communicator.unsubscribe(subscriberId, topicsList);
 	}
 
     /**
@@ -117,9 +107,7 @@ class InternalCommunicatorFacade extends EventEmitter {
      * @param payload
      */
 	send(payload) {
-		const me = this;
-
-		return me.communicator.send(payload);
+		return this.communicator.send(payload);
 	}
 
     /**
@@ -128,9 +116,7 @@ class InternalCommunicatorFacade extends EventEmitter {
      * @returns {*|void}
      */
 	removeSubscriber(subscriberId) {
-		const me = this;
-
-		return me.communicator.removeSubscriber(subscriberId);
+		return this.communicator.removeSubscriber(subscriberId);
 	}
 
     /**
@@ -138,9 +124,7 @@ class InternalCommunicatorFacade extends EventEmitter {
      * @returns {*}
      */
 	isAvailable() {
-		const me = this;
-
-		return me.communicator.isAvailable();
+		return this.communicator.isAvailable();
 	}
 }
 
