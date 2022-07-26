@@ -3,25 +3,30 @@ const Utils = require(`../../utils`);
 const FIFO = require(`fifo`);
 const EventEmitter = require(`events`);
 const FullMessageBufferError = require(`../../lib/errors/messageBuffer/FullMessageBufferError`);
-const sizeof = require('object-sizeof');
+const sizeof = require("object-sizeof");
 const debug = require(`debug`)(`messagebuffer`);
-
 
 /**
  * Message buffer class. Implements FIFO stack functionality
  */
 class MessageBuffer extends EventEmitter {
-
-    static get POLL_EVENT() { return `poll` };
+    /**
+     * @return {string}
+     */
+    static get POLL_EVENT() {
+        return `poll`;
+    }
 
     /**
      * Creates new MessageBuffer
+     * @constructor
      */
     constructor() {
         super();
 
         this.fifo = new FIFO();
-        this.maxDataSizeB = this.freeMemory = Config.MAX_SIZE_MB * Utils.B_IN_MB;
+        this.maxDataSizeB = this.freeMemory =
+            Config.MAX_SIZE_MB * Utils.B_IN_MB;
         this.dataSize = 0;
         this._pollingIntervalHandler = null;
         this._isPollingInStop = true;
@@ -32,7 +37,7 @@ class MessageBuffer extends EventEmitter {
 
     /**
      * Returns length on MessageBuffer
-     * @returns {number}
+     * @return {number}
      */
     get length() {
         return this.fifo.length;
@@ -42,7 +47,7 @@ class MessageBuffer extends EventEmitter {
      * Pushes new message to MessageBuffer
      * Emits next events:
      *      - notEmpty
-     * @param message
+     * @param {Object} message
      */
     push(message) {
         const sizeOfMessage = sizeof(message.message);
@@ -67,7 +72,7 @@ class MessageBuffer extends EventEmitter {
      * Inserts message in a first position of MessageBuffer
      * Emits next events:
      *      - notEmpty
-     * @param message
+     * @param {Object} message
      */
     unshift(message) {
         const sizeOfMessage = sizeof(message.message);
@@ -87,10 +92,10 @@ class MessageBuffer extends EventEmitter {
     }
 
     /**
-     * Returns an earliest message from MessageBuffer and removes it
+     * Returns the earliest message from MessageBuffer and removes it
      * Emits next events:
      *      - empty
-     * @returns {*}
+     * @return {Object}
      */
     shift() {
         const message = this.fifo.shift();
@@ -104,7 +109,7 @@ class MessageBuffer extends EventEmitter {
 
     /**
      *
-     * @returns {Array}
+     * @return {Array}
      */
     getBatch() {
         const result = [];
@@ -118,7 +123,7 @@ class MessageBuffer extends EventEmitter {
 
     /**
      * Iterates over each item of MessageBuffer
-     * @param cb
+     * @param {Function} cb
      */
     forEach(cb) {
         this.fifo.forEach(cb);
@@ -138,7 +143,7 @@ class MessageBuffer extends EventEmitter {
 
     /**
      * Returns free memory in bytes
-     * @returns {Number}
+     * @return {Number}
      */
     getFreeMemory() {
         return this.freeMemory;
@@ -146,18 +151,18 @@ class MessageBuffer extends EventEmitter {
 
     /**
      * Returns fill percentage
-     * @returns {String}
+     * @return {String}
      */
     getFillPercentage() {
-        return (this.dataSize * 100 / this.maxDataSizeB).toFixed(2);
+        return ((this.dataSize * 100) / this.maxDataSizeB).toFixed(2);
     }
 
     /**
      * Start buffer polling
      */
     startPolling() {
-       this._initPollingInterval();
-       this._isPollingInStop = false;
+        this._initPollingInterval();
+        this._isPollingInStop = false;
 
         debug(`Polling started`);
     }
@@ -196,7 +201,7 @@ class MessageBuffer extends EventEmitter {
 
     /**
      * Increment data size counter
-     * @param bytesAmount
+     * @param {number} bytesAmount
      * @private
      */
     _incrementDataSize(bytesAmount) {
@@ -206,7 +211,7 @@ class MessageBuffer extends EventEmitter {
 
     /**
      * Decrement data size counter
-     * @param bytesAmount
+     * @param {number} bytesAmount
      * @private
      */
     _decrementDataSize(bytesAmount) {
@@ -246,6 +251,5 @@ class MessageBuffer extends EventEmitter {
         }, 0);
     }
 }
-
 
 module.exports = MessageBuffer;

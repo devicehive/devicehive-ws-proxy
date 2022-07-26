@@ -5,7 +5,6 @@ const { Kafka } = require(`kafkajs`);
 const { v4: uuid } = require(`uuid`);
 const debug = require(`debug`)(`kafka`);
 
-
 /**
  * Kafka communicator implementation
  * Implements next interface:
@@ -19,27 +18,46 @@ const debug = require(`debug`)(`kafka`);
  * @event "message"
  */
 class InternalKafka extends EventEmitter {
-
-    static get MESSAGE_EVENT() { return `message`; }
-    static get AVAILABLE_EVENT() { return `available`; }
-    static get NOT_AVAILABLE_EVENT() { return `notAvailable`; }
-
-    static get INTERNAL_TOPIC_PREFIX() { return `__` };
+    /**
+     * @return {string}
+     */
+    static get MESSAGE_EVENT() {
+        return `message`;
+    }
+    /**
+     * @return {string}
+     */
+    static get AVAILABLE_EVENT() {
+        return `available`;
+    }
+    /**
+     * @return {string}
+     */
+    static get NOT_AVAILABLE_EVENT() {
+        return `notAvailable`;
+    }
+    /**
+     * @return {string}
+     */
+    static get INTERNAL_TOPIC_PREFIX() {
+        return `__`;
+    }
 
     /**
      * Generate subscription group identification key
-     * @param subscriber
-     * @param group
-     * @param topic
-     * @returns {string}
+     * @param {string} subscriber
+     * @param {string} group
+     * @param {string} topic
+     * @return {string}
      * @private
      */
-    static _generateSubscriptionGroupKey(subscriber, group,  topic) {
+    static _generateSubscriptionGroupKey(subscriber, group, topic) {
         return `${subscriber}:${group}:${topic}`;
     }
 
     /**
      * Creates new Kafka
+     * @constructor
      */
     constructor() {
         super();
@@ -55,20 +73,21 @@ class InternalKafka extends EventEmitter {
 
         this.kafka = new Kafka({
             clientId: this.clientUUID,
-            brokers: KafkaConfig.KAFKA_HOSTS.split(','),
-        })
+            brokers: KafkaConfig.KAFKA_HOSTS.split(","),
+        });
 
-        this.admin = this.kafka.admin()
+        this.admin = this.kafka.admin();
         this.producer = this.kafka.producer({});
         this.consumer = this.kafka.consumer({
             groupId: `${KafkaConfig.CONSUMER_GROUP_ID_PREFIX}-${this.clientUUID}`,
             maxWaitTimeInMs: KafkaConfig.CONSUMER_MAX_WAIT_TIME,
-            maxBytes: KafkaConfig.CONSUMER_MAX_BYTES
+            maxBytes: KafkaConfig.CONSUMER_MAX_BYTES,
         });
 
         debug(`Started trying connect to server`);
 
-        this.admin.connect()
+        this.admin
+            .connect()
             .then(() => {
                 this.isAdminReady = true;
                 debug(`Admin is ready`);
@@ -79,7 +98,8 @@ class InternalKafka extends EventEmitter {
                 this.isAdminReady = false;
             });
 
-        this.producer.connect()
+        this.producer
+            .connect()
             .then(() => {
                 this.isProducerReady = true;
                 debug(`Producer is ready`);
@@ -90,7 +110,8 @@ class InternalKafka extends EventEmitter {
                 this.isProducerReady = false;
             });
 
-        this.consumer.connect()
+        this.consumer
+            .connect()
             .then(async () => {
                 this.isConsumerReady = true;
                 debug(`Consumer is ready`);
@@ -100,7 +121,7 @@ class InternalKafka extends EventEmitter {
                 await this.consumer.run({
                     eachMessage: async ({ topic, partition, message }) =>
                         this._onMessage(topic, partition, message),
-                })
+                });
             })
             .catch((error) => {
                 debug(`Consumer error: ${error}`);
@@ -110,46 +131,53 @@ class InternalKafka extends EventEmitter {
 
     /**
      * Returns ready producer
-     * @returns {Admin}
+     * @return {Object}
      */
     getAdmin() {
-        return this.isAdminReady ?
-            Promise.resolve(this.admin) :
-            new Promise((resolve) => this.on(`adminReady`, () => resolve(this.admin)));
+        return this.isAdminReady
+            ? Promise.resolve(this.admin)
+            : new Promise((resolve) =>
+                  this.on(`adminReady`, () => resolve(this.admin))
+              );
     }
 
     /**
      * Returns ready producer
-     * @returns {Producer}
+     * @return {Object}
      */
     getProducer() {
-        return this.isProducerReady ?
-            Promise.resolve(this.producer) :
-            new Promise((resolve) => this.on(`producerReady`, () => resolve(this.producer)));
+        return this.isProducerReady
+            ? Promise.resolve(this.producer)
+            : new Promise((resolve) =>
+                  this.on(`producerReady`, () => resolve(this.producer))
+              );
     }
 
     /**
      * Returns ready consumer
-     * @returns {NoKafka.SimpleConsumer}
+     * @return {Object}
      */
     getConsumer() {
-        return this.isConsumerReady ?
-            Promise.resolve(this.consumer) :
-            new Promise((resolve) => this.on(`consumerReady`, () => resolve(this.consumer)));
+        return this.isConsumerReady
+            ? Promise.resolve(this.consumer)
+            : new Promise((resolve) =>
+                  this.on(`consumerReady`, () => resolve(this.consumer))
+              );
     }
 
     /**
      * Creates Kafka topics by topicsList
-     * @param topicsList
-     * @returns {Promise<Array>}
+     * @param {Array<string>} topicsList
+     * @return {Promise<Array<string>>}
      */
     async createTopics(topicsList) {
         const admin = await this.getAdmin();
 
         try {
-            await admin.createTopics({topics: topicsList.map(t => ({topic: t}))});
+            await admin.createTopics({
+                topics: topicsList.map((t) => ({ topic: t })),
+            });
         } catch (error) {
-            console.log(error);
             throw error;
         }
 
@@ -158,7 +186,7 @@ class InternalKafka extends EventEmitter {
 
     /**
      * Returns list of all existing topics
-     * @returns {Promise<Array>}
+     * @return {Promise<Array<string>>}
      */
     async listTopics() {
         const admin = await this.getAdmin();
@@ -168,32 +196,32 @@ class InternalKafka extends EventEmitter {
 
     /**
      * Subscribes consumer to each topic of topicsList and adds subscriberId to each subscription
-     * @param subscriberId
-     * @param subscriptionGroup
-     * @param topicsList
-     * @returns {Promise<Array>}
+     * @param {string} subscriberId
+     * @param {string} subscriptionGroup
+     * @param {Array<string>} topicsList
+     * @return {Promise<Array<string>>}
      */
     async subscribe(subscriberId, subscriptionGroup, topicsList) {
         const topicsToSubscribe = new Set();
         const topicsToUnsubscribe = new Set();
 
-        if ( topicsList && topicsList.length === 0) {
-            return topicsList
+        if (topicsList && topicsList.length === 0) {
+            return topicsList;
         }
 
-        try {
-            await this.createTopics(topicsList);
-        } catch (error) {
-            console.log(error);
-        }
+        await this.createTopics(topicsList);
 
         topicsList.forEach((topic) => {
-            const subscribersSet = this.subscriptionMap.get(topic) || new Set;
-            const groupSubscribersMap = this.subscriptionGroupMap.get(topic) || new Map;
-            const groupSubscribersSet = groupSubscribersMap.get(subscriptionGroup) || new Set;
+            const subscribersSet = this.subscriptionMap.get(topic) || new Set();
+            const groupSubscribersMap =
+                this.subscriptionGroupMap.get(topic) || new Map();
+            const groupSubscribersSet =
+                groupSubscribersMap.get(subscriptionGroup) || new Set();
 
-            if (Utils.isDefined(subscriptionGroup) &&
-                !groupSubscribersSet.has(subscriberId)) {
+            if (
+                Utils.isDefined(subscriptionGroup) &&
+                !groupSubscribersSet.has(subscriberId)
+            ) {
                 topicsToSubscribe.add(topic);
 
                 if (subscribersSet.has(subscriberId)) {
@@ -205,8 +233,10 @@ class InternalKafka extends EventEmitter {
                         topicsToUnsubscribe.add(topic);
                     }
                 });
-            } else if (!Utils.isDefined(subscriptionGroup) &&
-                !subscribersSet.has(topic)) {
+            } else if (
+                !Utils.isDefined(subscriptionGroup) &&
+                !subscribersSet.has(topic)
+            ) {
                 topicsToSubscribe.add(topic);
 
                 groupSubscribersMap.forEach((groupSubscribersSet) => {
@@ -219,71 +249,91 @@ class InternalKafka extends EventEmitter {
 
         await this.unsubscribe(subscriberId, Array.from(topicsToUnsubscribe));
 
-        const consumer = await this.getConsumer()
+        const consumer = await this.getConsumer();
 
         if (Utils.isDefined(subscriptionGroup)) {
-            await Promise.all(Array.from(topicsToSubscribe).map(async topic => {
-                const groupConsumer = this.kafka.consumer({
-                    groupId: `${KafkaConfig.CONSUMER_GROUP_ID_PREFIX}-${subscriptionGroup}`,
-                    // maxWaitTimeInMs: KafkaConfig.CONSUMER_MAX_WAIT_TIME,
-                    // maxBytes: KafkaConfig.CONSUMER_MAX_BYTES
-                });
+            await Promise.all(
+                Array.from(topicsToSubscribe).map(async (topic) => {
+                    const groupConsumer = this.kafka.consumer({
+                        groupId: `${KafkaConfig.CONSUMER_GROUP_ID_PREFIX}-${subscriptionGroup}`,
+                        // maxWaitTimeInMs: KafkaConfig.CONSUMER_MAX_WAIT_TIME,
+                        // maxBytes: KafkaConfig.CONSUMER_MAX_BYTES
+                    });
 
-                this.groupConsumersMap.set(
-                    InternalKafka._generateSubscriptionGroupKey(subscriberId, subscriptionGroup, topic), groupConsumer);
+                    this.groupConsumersMap.set(
+                        InternalKafka._generateSubscriptionGroupKey(
+                            subscriberId,
+                            subscriptionGroup,
+                            topic
+                        ),
+                        groupConsumer
+                    );
 
-                await groupConsumer.connect();
-                await groupConsumer.subscribe({topic});
+                    await groupConsumer.connect();
+                    await groupConsumer.subscribe({ topic });
 
-                await groupConsumer.run({
-                    eachMessage: async ({ topic, partition, message }) =>
-                        this._onMessage(topic, partition, message, subscriptionGroup, subscriberId),
+                    await groupConsumer.run({
+                        eachMessage: async ({ topic, partition, message }) =>
+                            this._onMessage(
+                                topic,
+                                partition,
+                                message,
+                                subscriptionGroup,
+                                subscriberId
+                            ),
+                    });
                 })
-            }))
+            );
         } else {
             await consumer.stop();
-            await consumer.subscribe({ topics: Array.from(topicsToSubscribe) })
+            await consumer.subscribe({ topics: Array.from(topicsToSubscribe) });
             await consumer.run({
                 eachMessage: async ({ topic, partition, message }) => {
-                    this._onMessage(topic, partition, message)
-                }
+                    this._onMessage(topic, partition, message);
+                },
             });
         }
 
         Array.from(topicsToSubscribe).forEach((topic) => {
             if (Utils.isDefined(subscriptionGroup)) {
-                const groupSubscribersMap = this.subscriptionGroupMap.get(topic) || new Map;
-                const groupSubscribersSet = groupSubscribersMap.get(subscriptionGroup) || new Set;
+                const groupSubscribersMap =
+                    this.subscriptionGroupMap.get(topic) || new Map();
+                const groupSubscribersSet =
+                    groupSubscribersMap.get(subscriptionGroup) || new Set();
 
                 groupSubscribersSet.add(subscriberId);
                 groupSubscribersMap.set(subscriptionGroup, groupSubscribersSet);
                 this.subscriptionGroupMap.set(topic, groupSubscribersMap);
             } else {
-                const subscribersSet = this.subscriptionMap.get(topic) || new Set;
+                const subscribersSet =
+                    this.subscriptionMap.get(topic) || new Set();
 
                 subscribersSet.add(subscriberId);
                 this.subscriptionMap.set(topic, subscribersSet);
             }
         });
 
-        debug(`Subscriber with id: ${subscriberId} has subscribed to the next topics: ${topicsList}`);
+        debug(
+            `Subscriber with id: ${subscriberId} has subscribed to the next topics: ${topicsList}`
+        );
 
         return topicsList;
     }
 
     /**
      * Unsubscribes consumer from each topic of topicsList and removes subscriberId from each subscription
-     * @param subscriberId
-     * @param topicsList
-     * @returns {Bluebird<any>}
+     * @param {string} subscriberId
+     * @param {Array<string>} topicsList
+     * @return {Promise<Array<string>>}
      */
     async unsubscribe(subscriberId, topicsList) {
         const topicsToUnsubscribe = [];
         // const consumer = await this.getConsumer()
 
         topicsList.forEach((topic) => {
-            const subscribersSet = this.subscriptionMap.get(topic) || new Set;
-            const groupSubscribersMap = this.subscriptionGroupMap.get(topic) || new Map;
+            const subscribersSet = this.subscriptionMap.get(topic) || new Set();
+            const groupSubscribersMap =
+                this.subscriptionGroupMap.get(topic) || new Map();
 
             if (subscribersSet.has(subscriberId)) {
                 subscribersSet.delete(subscriberId);
@@ -295,8 +345,14 @@ class InternalKafka extends EventEmitter {
 
             groupSubscribersMap.forEach((groupSubscribersSet, group) => {
                 if (groupSubscribersSet.has(subscriberId)) {
-                    const groupConsumerKey = InternalKafka._generateSubscriptionGroupKey(subscriberId, group, topic);
-                    const groupConsumer = this.groupConsumersMap.get(groupConsumerKey);
+                    const groupConsumerKey =
+                        InternalKafka._generateSubscriptionGroupKey(
+                            subscriberId,
+                            group,
+                            topic
+                        );
+                    const groupConsumer =
+                        this.groupConsumersMap.get(groupConsumerKey);
 
                     groupConsumer.disconnect();
                     this.groupConsumersMap.delete(groupConsumerKey);
@@ -311,30 +367,30 @@ class InternalKafka extends EventEmitter {
             this.subscriptionMap.delete(topic);
         });
 
-        debug(`Subscriber with id: ${subscriberId} has unsubscribed from the next topics: ${topicsList}`);
+        debug(
+            `Subscriber with id: ${subscriberId} has unsubscribed from the next topics: ${topicsList}`
+        );
 
         return topicsList;
     }
 
     /**
      * Sends payload to Kafka over Kafka Producer
-     * @param payload
-     * @returns {Promise<>}
+     * @param {string} payload
+     * @return {Promise}
      */
     async send(payload) {
         const producer = await this.getProducer();
 
         return producer.send({
             topic: payload.topic,
-            messages: [
-                { value: payload.message.value }
-            ]
+            messages: [{ value: payload.message.value }],
         });
     }
 
     /**
      * Removes subscriberId from each Consumer subscription
-     * @param subscriberId
+     * @param {string} subscriberId
      */
     removeSubscriber(subscriberId) {
         const topicsToUnsubscribeSet = new Set();
@@ -354,43 +410,57 @@ class InternalKafka extends EventEmitter {
         });
 
         if (topicsToUnsubscribeSet.size > 0) {
-            this.unsubscribe(subscriberId, Array.from(topicsToUnsubscribeSet));
+            this.unsubscribe(
+                subscriberId,
+                Array.from(topicsToUnsubscribeSet)
+            ).catch((err) => debug(`Unsubscription error: ${err}`));
         }
     }
 
     /**
      * Checks if Kafka is available
-     * @returns {boolean}
+     * @return {boolean}
      */
     isAvailable() {
-        return this.isConsumerReady
+        return this.isConsumerReady;
     }
 
     /**
      * Message handler
      * Emits next events:
      *      - message
-     * @param topic
-     * @param partition
-     * @param message
-     * @param subscriptionGroup
-     * @param subscriber
+     * @param {string} topic
+     * @param {number} partition
+     * @param {string} message
+     * @param {string} subscriptionGroup
+     * @param {string} subscriber
      * @private
      */
     _onMessage(topic, partition, message, subscriptionGroup, subscriber) {
         if (Utils.isDefined(subscriptionGroup)) {
-            this.emit(InternalKafka.MESSAGE_EVENT, subscriber, topic, message.value, partition);
+            this.emit(
+                InternalKafka.MESSAGE_EVENT,
+                subscriber,
+                topic,
+                message.value,
+                partition
+            );
         } else {
             const subscriptionSet = this.subscriptionMap.get(topic);
 
             if (subscriptionSet) {
                 subscriptionSet.forEach((subscriberId) => {
-                    this.emit(InternalKafka.MESSAGE_EVENT, subscriberId, topic, message.value, partition);
+                    this.emit(
+                        InternalKafka.MESSAGE_EVENT,
+                        subscriberId,
+                        topic,
+                        message.value,
+                        partition
+                    );
                 });
             }
         }
     }
 }
-
 
 module.exports = InternalKafka;
