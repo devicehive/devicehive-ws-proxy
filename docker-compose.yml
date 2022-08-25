@@ -9,7 +9,7 @@ services:
             - ALLOW_ANONYMOUS_LOGIN=yes
 
     kafka:
-        image: docker.io/bitnami/kafka:3.1
+        image: docker.io/bitnami/kafka:3.2
         links:
             - "zookeeper"
         ports:
