@@ -1,22 +1,27 @@
 const Config = require(`./config`);
-const ProxyClient = require('./ProxyClient');
+const ProxyClient = require("./ProxyClient");
 const { MessageBuilder } = require(`devicehive-proxy-message`);
-const { NotificationCreatePayload } = require(`devicehive-proxy-message`).payload;
+const { NotificationCreatePayload } =
+    require(`devicehive-proxy-message`).payload;
 
-const TEST_MESSAGE = MessageBuilder.createNotification(new NotificationCreatePayload({
-    topic: Config.TEST_TOPIC,
-    partition: Config.TEST_PARTITION,
-    message: JSON.stringify(Config.TEST_MESSAGE)
-}));
+const TEST_MESSAGE = MessageBuilder.createNotification(
+    new NotificationCreatePayload({
+        topic: Config.TEST_TOPIC,
+        partition: Config.TEST_PARTITION,
+        message: JSON.stringify(Config.TEST_MESSAGE),
+    })
+);
 const TOTAL_MESSAGES = Config.TOTAL_MESSAGES_AMOUNT;
-
 
 const proxyClient = new ProxyClient(Config.PROXY_SERVER_URL);
 
+/**
+ * Messages producer
+ */
 function startSendingRoutine() {
     let messageCount = 0;
-    let messagesPes100ms = Config.MESSAGE_PER_SECOND / 10;
-    let monitorIntervalHandler = setInterval(() => {
+    const messagesPes100ms = Config.MESSAGE_PER_SECOND / 10;
+    const monitorIntervalHandler = setInterval(() => {
         process.send({ action: `sent`, amount: messageCount });
     }, 1000);
 

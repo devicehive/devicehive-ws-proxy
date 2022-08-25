@@ -1,85 +1,79 @@
 const WS = require(`ws`);
 const EventEmitter = require(`events`);
 const { Message } = require(`devicehive-proxy-message`);
-const uuid = require(`uuid/v1`);
-
+const { v4: uuid } = require(`uuid`);
 
 /**
  * DeviceHive WebSocket Proxy client
  */
 class ProxyClient extends EventEmitter {
-
     /**
      * Creates new ProxyClient object
-     * @param webSocketServerUrl
+     * @param {string} webSocketServerUrl
+     * @constructor
      */
     constructor(webSocketServerUrl) {
         super();
 
-        const me = this;
+        this.ws = new WS(webSocketServerUrl);
 
-        me.ws = new WS(webSocketServerUrl);
-
-        me.ws.addEventListener(`open`, () => {
-            process.nextTick(() => me.emit(`open`));
+        this.ws.addEventListener(`open`, () => {
+            process.nextTick(() => this.emit(`open`));
         });
 
-        me.ws.addEventListener(`close`, () => {
-            process.nextTick(() => me.emit(`close`));
+        this.ws.addEventListener(`close`, () => {
+            process.nextTick(() => this.emit(`close`));
         });
 
-        me.ws.addEventListener(`error`, (error) => {
-            me.emit(`error`, error);
+        this.ws.addEventListener(`error`, (error) => {
+            this.emit(`error`, error);
         });
 
-        me.ws.addEventListener(`ping`, (pingData) => {
-            me.emit(`ping`, pingData);
+        this.ws.addEventListener(`ping`, (pingData) => {
+            this.emit(`ping`, pingData);
         });
 
-        me.ws.addEventListener(`message`, (event) => {
-            try {
-                let messages = JSON.parse(event.data);
-                messages = messages.length ? messages : [messages];
+        this.ws.addEventListener(`message`, (event) => {
+            let messages = JSON.parse(event.data);
+            messages = messages.length ? messages : [messages];
 
-                for (let messageCount = 0; messageCount < messages.length; messageCount++) {
-                    me.emit(`message`, Message.normalize(messages[messageCount]));
-                    if (messages[messageCount].id) {
-                        me.emit(messages[messageCount].id, Message.normalize(messages[messageCount]));
-                    }
+            for (
+                let messageCount = 0;
+                messageCount < messages.length;
+                messageCount++
+            ) {
+                this.emit(`message`, Message.normalize(messages[messageCount]));
+                if (messages[messageCount].id) {
+                    this.emit(
+                        messages[messageCount].id,
+                        Message.normalize(messages[messageCount])
+                    );
                 }
-            } catch (error) {
-                console.warn(error);
             }
         });
     }
 
     /**
      * Sends message to WS Proxy
-     * @param message
+     * @param {Message} message
      */
     async sendMessage(message = new Message()) {
-        const me = this;
-
         message.id = message.id || uuid();
 
         return new Promise((resolve) => {
-            me.ws.send(message.toString());
+            this.ws.send(message.toString());
 
-            me.on(message.id, resolve);
+            this.on(message.id, resolve);
         });
     }
 
     /**
      * Sends message to WS Proxy
-     * @param message
+     * @param {Message} message
      */
     send(message = new Message()) {
-        const me = this;
-
-        me.ws.send(message.toString());
+        this.ws.send(message.toString());
     }
 }
 
-
 module.exports = ProxyClient;
-

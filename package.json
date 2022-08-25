@@ -1,36 +1,54 @@
 {
     "name": "devicehive-ws-proxy",
-    "version": "1.1.0",
+    "version": "3.0.0",
     "description": "WebSocket to message broker proxy",
-    "scripts": {
-        "start": "node ./src/proxy.js"
-    },
-    "author": "Ihor T.",
     "main": "./src/proxy.js",
+    "scripts": {
+        "start": "node ./src/proxy.js",
+        "format:check": "prettier --check .",
+        "format:write": "prettier --write .",
+        "lint:check": "eslint .",
+        "lint:fix": "eslint --fix .",
+        "prepare": "husky install"
+    },
     "repository": {
         "type": "git",
         "url": "git+https://github.com/devicehive/devicehive-ws-proxy.git"
     },
+    "keywords": [
+        "DeviceHive",
+        "WebSocket",
+        "MessageBus",
+        "Kafka"
+    ],
+    "author": "Ihor Trambovetskyi (igortram@gmail.com)",
     "license": "Apache-2.0",
+    "bugs": {
+        "url": "https://github.com/devicehive/devicehive-ws-proxy/issues"
+    },
+    "homepage": "https://github.com/devicehive/devicehive-ws-proxy#readme",
     "dependencies": {
-        "bluebird": "^3.5.1",
-        "debug": "^2.6.9",
+        "async-mutex": "^0.3.2",
+        "axios": "^0.27.2",
+        "debug": "^4.3.4",
         "devicehive-proxy-message": "^1.0.13",
-        "fifo": "^2.3.0",
+        "fifo": "^2.4.1",
         "json-evn-configurator": "^1.0.6",
-        "jsonwebtoken": "^8.1.1",
-        "lodash": "^4.17.5",
-        "no-kafka": "^3.2.8",
-        "object-sizeof": "^1.2.0",
-        "request": "^2.83.0",
-        "shortid": "^2.2.8",
-        "uuid": "^3.2.1",
-        "winston": "^2.4.0",
-        "ws": "^3.3.3"
+        "jsonwebtoken": "^8.5.1",
+        "kafkajs": "^2.1.0",
+        "lodash": "^4.17.21",
+        "object-sizeof": "^1.6.3",
+        "shortid": "^2.2.16",
+        "uuid": "^8.3.2",
+        "winston": "^3.8.1",
+        "ws": "^8.8.1"
     },
     "devDependencies": {
+        "eslint": "^8.20.0",
+        "eslint-config-google": "^0.14.0",
+        "eslint-config-prettier": "^8.5.0",
+        "husky": "^8.0.1",
         "node-status": "^1.0.0",
-        "cli-spinners": "^1.1.0",
-        "colors": "^1.1.2"
+        "prettier": "^2.7.1"
     }
 }

@@ -1,34 +1,43 @@
 const Config = require(`./config`);
-const status = require('node-status');
-const { fork } = require('child_process');
+const status = require("node-status");
+const { fork } = require("child_process");
 const { MessageBuilder } = require(`devicehive-proxy-message`);
-const { NotificationCreatePayload } = require(`devicehive-proxy-message`).payload;
+const { NotificationCreatePayload } =
+    require(`devicehive-proxy-message`).payload;
 
-const receiver = fork('LoadTestReceiver.js');
-const sender = fork('LoadTestSender.js');
+const receiver = fork("LoadTestReceiver.js");
+const sender = fork("LoadTestSender.js");
 
-function multipleTrigger (count, action) {
+/**
+ * Kinda debouncer
+ * @param {number} count
+ * @param {Function} action
+ * @return {Function}
+ */
+function multipleTrigger(count, action) {
     let doubleCounter = 0;
 
-    return function twitch () {
+    return function twitch() {
         doubleCounter++;
 
         if (doubleCounter === count) {
             action();
         }
-    }
+    };
 }
 
-const TEST_MESSAGE = MessageBuilder.createNotification(new NotificationCreatePayload({
-    topic: Config.TEST_TOPIC,
-    partition: Config.TEST_PARTITION,
-    message: JSON.stringify(Config.TEST_MESSAGE)
-}));
-const TEST_MESSAGE_SIZE = new Buffer(TEST_MESSAGE.toString()).length;
+const TEST_MESSAGE = MessageBuilder.createNotification(
+    new NotificationCreatePayload({
+        topic: Config.TEST_TOPIC,
+        partition: Config.TEST_PARTITION,
+        message: JSON.stringify(Config.TEST_MESSAGE),
+    })
+);
+const TEST_MESSAGE_SIZE = Buffer.from(TEST_MESSAGE.toString()).length;
 const TOTAL_MESSAGES = Config.TOTAL_MESSAGES_AMOUNT;
 const EXPECTED_THROUGHPUT = TEST_MESSAGE_SIZE * Config.MESSAGE_PER_SECOND;
 
-
+/* eslint-disable no-console */
 console.log(`Test message size: ${TEST_MESSAGE_SIZE} byte`);
 console.log(`Total messages amount: ${TOTAL_MESSAGES}`);
 console.log(`Total messages size: ${TOTAL_MESSAGES * TEST_MESSAGE_SIZE} bytes`);
@@ -36,27 +45,33 @@ console.log(`Given messages per second speed: ${Config.MESSAGE_PER_SECOND}`);
 console.log(`Expected throughput: ${EXPECTED_THROUGHPUT} B/s`);
 console.log(`Expected uptime: ${TOTAL_MESSAGES / Config.MESSAGE_PER_SECOND} s`);
 console.log(``);
-
+/* eslint-enable no-console */
 
 let sentFinishDate;
 let receiveFinishDate;
 let averageThroughput = -1;
 let latency = -1;
-const sendMonitor = status.addItem('sendMonitor', { max: TOTAL_MESSAGES });
-const receiveMonitor = status.addItem('receiveMonitor', { max: TOTAL_MESSAGES });
-const latencyMonitor = status.addItem('latencyMonitor', { custom: () => {
-        return latency === -1 ? `-` : latency.toFixed();
-    }
+const sendMonitor = status.addItem("sendMonitor", { max: TOTAL_MESSAGES });
+const receiveMonitor = status.addItem("receiveMonitor", {
+    max: TOTAL_MESSAGES,
 });
-const throughputMonitor = status.addItem('throughputMonitor', { custom: () => {
+
+status.addItem("latencyMonitor", {
+    custom: () => {
+        return latency === -1 ? `-` : latency.toFixed(3);
+    },
+});
+status.addItem("throughputMonitor", {
+    custom: () => {
         return averageThroughput === -1 ? `-` : averageThroughput.toFixed();
-    }
+    },
 });
 
 const readyTrigger = multipleTrigger(2, () => {
     status.start({
         interval: 200,
-        pattern: ' Uptime: {uptime} | {spinner.cyan} | Sent out: {sendMonitor.bar} | Received: {receiveMonitor.bar} | Actual throughput: {throughputMonitor.green.custom} B/s | Largest latency: {latencyMonitor.red.custom} s '
+        pattern:
+            " Uptime: {uptime} | {spinner.cyan} | Sent out: {sendMonitor.bar} | Received: {receiveMonitor.bar} | Actual throughput: {throughputMonitor.green.custom} B/s | Largest latency: {latencyMonitor.red.custom} s ",
     });
 
     sender.send({ action: "start" });

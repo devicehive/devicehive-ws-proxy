@@ -1,18 +1,39 @@
-
 /**
  * Utility methods class
  */
 class Utils {
+    /**
+     * @return {number}
+     */
+    static get MS_IN_S() {
+        return 1000;
+    }
 
-    static get MS_IN_S() { return 1000; }
-    static get B_IN_KB() { return 1024; }
-    static get B_IN_MB() { return 1024 * 1024; }
-    static get EMPTY_STRING() { return ``; }
+    /**
+     * @return {number}
+     */
+    static get B_IN_KB() {
+        return 1024;
+    }
+
+    /**
+     * @return {number}
+     */
+    static get B_IN_MB() {
+        return 1024 * 1024;
+    }
+
+    /**
+     * @return {string}
+     */
+    static get EMPTY_STRING() {
+        return ``;
+    }
 
     /**
      * Iterate item or array of items
-     * @param array
-     * @param callback
+     * @param {Array} array
+     * @param {Function} callback
      */
     static forEach(array, callback) {
         if (Array.isArray(array)) {
@@ -24,8 +45,8 @@ class Utils {
 
     /**
      * Convert single item as array with one element or just returns array in case of array
-     * @param array
-     * @returns {*}
+     * @param {*} array
+     * @return {Array}
      */
     static toArray(array) {
         if (Array.isArray(array)) {
@@ -37,39 +58,31 @@ class Utils {
 
     /**
      * Checks is variable not undefined or null
-     * @param variable
-     * @returns {boolean}
+     * @param {*} variable
+     * @return {boolean}
      */
     static isDefined(variable) {
-        return !(typeof variable === 'undefined' || variable === null);
+        return !(typeof variable === "undefined" || variable === null);
     }
 
     /**
      * Returns value if it's defined, not null, and not an empty string, or else returns defaultValue
-     * @param value
-     * @param defaultValue
-     * @returns {*}
+     * @param {*} value
+     * @param {*} defaultValue
+     * @return {*}
      */
     static value(value, defaultValue) {
-        return (Utils.isDefined(value) && value !== ``) ? value : defaultValue;
+        return Utils.isDefined(value) && value !== `` ? value : defaultValue;
     }
-
 
     /**
      * Checks that value is true or "true"
-     * @param value
-     * @returns {Boolean}
+     * @param {boolean|string} value
+     * @return {Boolean}
      */
     static isTrue(value) {
-        return value === true ? true : (value === `true`);
-    }
-
-    static queryBuilder(paramsObject) {
-        return Object.keys(paramsObject).reduce((queryString, key, index) => {
-            return queryString += `${index === 0 ? `` : `&`}${key}=${paramsObject[key]}`
-        }, `?`);
+        return value === true ? true : value === `true`;
     }
 }
-
 
 module.exports = Utils;

@@ -3,122 +3,119 @@ const Utils = require(`../../utils`);
 const FIFO = require(`fifo`);
 const EventEmitter = require(`events`);
 const FullMessageBufferError = require(`../../lib/errors/messageBuffer/FullMessageBufferError`);
-const sizeof = require('object-sizeof');
+const sizeof = require("object-sizeof");
 const debug = require(`debug`)(`messagebuffer`);
-
 
 /**
  * Message buffer class. Implements FIFO stack functionality
  */
 class MessageBuffer extends EventEmitter {
-
-    static get POLL_EVENT() { return `poll` };
+    /**
+     * @return {string}
+     */
+    static get POLL_EVENT() {
+        return `poll`;
+    }
 
     /**
      * Creates new MessageBuffer
+     * @constructor
      */
     constructor() {
         super();
 
-        const me = this;
-
-        me.fifo = new FIFO();
-        me.maxDataSizeB = me.freeMemory = Config.MAX_SIZE_MB * Utils.B_IN_MB;
-        me.dataSize = 0;
-        me._pollingIntervalHandler = null;
-        me._isPollingInStop = true;
-        me._enablePolling = false;
+        this.fifo = new FIFO();
+        this.maxDataSizeB = this.freeMemory =
+            Config.MAX_SIZE_MB * Utils.B_IN_MB;
+        this.dataSize = 0;
+        this._pollingIntervalHandler = null;
+        this._isPollingInStop = true;
+        this._enablePolling = false;
 
         debug(`Maximum size of message buffer: ${Config.MAX_SIZE_MB} Mb`);
     }
 
     /**
      * Returns length on MessageBuffer
-     * @returns {number}
+     * @return {number}
      */
     get length() {
-        const me = this;
-
-        return me.fifo.length;
+        return this.fifo.length;
     }
 
     /**
      * Pushes new message to MessageBuffer
      * Emits next events:
      *      - notEmpty
-     * @param message
+     * @param {Object} message
      */
     push(message) {
-        const me = this;
         const sizeOfMessage = sizeof(message.message);
 
-        if (me.getFreeMemory() < sizeOfMessage) {
+        if (this.getFreeMemory() < sizeOfMessage) {
             throw new FullMessageBufferError(message.message);
         }
 
         message.size = sizeOfMessage;
 
-        me.fifo.push(message);
-        me._incrementDataSize(sizeOfMessage);
+        this.fifo.push(message);
+        this._incrementDataSize(sizeOfMessage);
 
-        if (me._isPollingInStop === true && me._enablePolling === true) {
-            me.startPolling();
+        if (this._isPollingInStop === true && this._enablePolling === true) {
+            this.startPolling();
         }
 
-        debug(`Pushed new message, length: ${me.length}`);
+        debug(`Pushed new message, length: ${this.length}`);
     }
 
     /**
      * Inserts message in a first position of MessageBuffer
      * Emits next events:
      *      - notEmpty
-     * @param message
+     * @param {Object} message
      */
     unshift(message) {
-        const me = this;
         const sizeOfMessage = sizeof(message.message);
 
-        if (me.getFreeMemory() < sizeOfMessage) {
+        if (this.getFreeMemory() < sizeOfMessage) {
             throw new FullMessageBufferError(message.message);
         }
 
-        me.fifo.unshift(message);
-        me._incrementDataSize(sizeOfMessage);
+        this.fifo.unshift(message);
+        this._incrementDataSize(sizeOfMessage);
 
-        if (me._isPollingInStop === true && me._enablePolling === true) {
-            me.startPolling();
+        if (this._isPollingInStop === true && this._enablePolling === true) {
+            this.startPolling();
         }
 
-        debug(`Unshifted new message, length: ${me.length}`);
+        debug(`Unshifted new message, length: ${this.length}`);
     }
 
     /**
-     * Returns an earliest message from MessageBuffer and removes it
+     * Returns the earliest message from MessageBuffer and removes it
      * Emits next events:
      *      - empty
-     * @returns {*}
+     * @return {Object}
      */
     shift() {
-        const me = this;
-        const message = me.fifo.shift();
+        const message = this.fifo.shift();
 
-        me._decrementDataSize(sizeof(message));
+        this._decrementDataSize(sizeof(message));
 
-        debug(`Shifted message, length: ${me.length}`);
+        debug(`Shifted message, length: ${this.length}`);
 
         return message;
     }
 
     /**
      *
-     * @returns {Array}
+     * @return {Array}
      */
     getBatch() {
-        const me = this;
         const result = [];
 
-        while (me.length) {
-            result.push(me.shift());
+        while (this.length) {
+            result.push(this.shift());
         }
 
         return result;
@@ -126,12 +123,10 @@ class MessageBuffer extends EventEmitter {
 
     /**
      * Iterates over each item of MessageBuffer
-     * @param cb
+     * @param {Function} cb
      */
     forEach(cb) {
-        const me = this;
-
-        me.fifo.forEach(cb);
+        this.fifo.forEach(cb);
     }
 
     /**
@@ -140,42 +135,34 @@ class MessageBuffer extends EventEmitter {
      *      - empty
      */
     clear() {
-        const me = this;
-
-        me.fifo.clear();
-        me._resetDataSize();
+        this.fifo.clear();
+        this._resetDataSize();
 
         debug(`Buffer cleared`);
     }
 
     /**
      * Returns free memory in bytes
-     * @returns {Number}
+     * @return {Number}
      */
     getFreeMemory() {
-        const me = this;
-
-        return me.freeMemory;
+        return this.freeMemory;
     }
 
     /**
      * Returns fill percentage
-     * @returns {String}
+     * @return {String}
      */
     getFillPercentage() {
-        const me = this;
-
-        return (me.dataSize * 100 / me.maxDataSizeB).toFixed(2);
+        return ((this.dataSize * 100) / this.maxDataSizeB).toFixed(2);
     }
 
     /**
      * Start buffer polling
      */
     startPolling() {
-       const me = this;
-
-       me._initPollingInterval();
-       me._isPollingInStop = false;
+        this._initPollingInterval();
+        this._isPollingInStop = false;
 
         debug(`Polling started`);
     }
@@ -184,10 +171,8 @@ class MessageBuffer extends EventEmitter {
      * Stop buffer polling
      */
     stopPolling() {
-        const me = this;
-
-        clearInterval(me._pollingIntervalHandler);
-        me._isPollingInStop = true;
+        clearInterval(this._pollingIntervalHandler);
+        this._isPollingInStop = true;
 
         debug(`Polling stopped`);
     }
@@ -196,52 +181,42 @@ class MessageBuffer extends EventEmitter {
      * Restart buffer polling
      */
     restartPolling() {
-        const me = this;
-
-        me.stopPolling();
-        me.startPolling();
+        this.stopPolling();
+        this.startPolling();
     }
 
     /**
      *
      */
     enablePolling() {
-        const me = this;
-
-        me._enablePolling = true;
+        this._enablePolling = true;
     }
 
     /**
      *
      */
     disablePolling() {
-        const me = this;
-
-        me._enablePolling = false;
+        this._enablePolling = false;
     }
 
     /**
      * Increment data size counter
-     * @param bytesAmount
+     * @param {number} bytesAmount
      * @private
      */
     _incrementDataSize(bytesAmount) {
-        const me = this;
-
-        me.dataSize += bytesAmount;
-        me._checkMemoryUsage();
+        this.dataSize += bytesAmount;
+        this._checkMemoryUsage();
     }
 
     /**
      * Decrement data size counter
-     * @param bytesAmount
+     * @param {number} bytesAmount
      * @private
      */
     _decrementDataSize(bytesAmount) {
-        const me = this;
-
-        me.dataSize -= bytesAmount;
-        me._checkMemoryUsage();
+        this.dataSize -= bytesAmount;
+        this._checkMemoryUsage();
     }
 
     /**
@@ -249,10 +224,8 @@ class MessageBuffer extends EventEmitter {
      * @private
      */
     _resetDataSize() {
-        const me = this;
-
-        me.dataSize = 0;
-        me._checkMemoryUsage();
+        this.dataSize = 0;
+        this._checkMemoryUsage();
     }
 
     /**
@@ -260,9 +233,7 @@ class MessageBuffer extends EventEmitter {
      * @private
      */
     _checkMemoryUsage() {
-        const me = this;
-
-        me.freeMemory = me.maxDataSizeB - me.dataSize;
+        this.freeMemory = this.maxDataSizeB - this.dataSize;
     }
 
     /**
@@ -271,17 +242,14 @@ class MessageBuffer extends EventEmitter {
      * @private
      */
     _initPollingInterval() {
-        const me = this;
-
-        me._pollingIntervalHandler = setInterval(() => {
-            if (me.length > 0) {
-                me.emit(MessageBuffer.POLL_EVENT, me.getBatch());
+        this._pollingIntervalHandler = setInterval(() => {
+            if (this.length > 0) {
+                this.emit(MessageBuffer.POLL_EVENT, this.getBatch());
             } else {
-                me.stopPolling();
+                this.stopPolling();
             }
         }, 0);
     }
 }
-
 
 module.exports = MessageBuffer;

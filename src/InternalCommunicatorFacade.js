@@ -1,7 +1,7 @@
 const EventEmitter = require(`events`);
 const Kafka = require(`./kafka/Kafka`);
+const Franz = require("./franz/Franz.js").Franz;
 const debug = require(`debug`)(`internalcommunicatorfacade`);
-
 
 /**
  * Communicator (Message Broker) Proxy facade
@@ -10,135 +10,175 @@ const debug = require(`debug`)(`internalcommunicatorfacade`);
  * @event "message"
  */
 class InternalCommunicatorFacade extends EventEmitter {
+    /**
+     * @return {string}
+     */
+    static get MESSAGE_EVENT() {
+        return `message`;
+    }
+    /**
+     * @return {string}
+     */
+    static get AVAILABLE_EVENT() {
+        return `available`;
+    }
+    /**
+     * @return {string}
+     */
+    static get NOT_AVAILABLE_EVENT() {
+        return `notAvailable`;
+    }
+    /**
+     * @return {string}
+     */
+    static get KAFKA_COMMUNICATOR() {
+        return `kafka`;
+    }
+    /**
+     * @return {string}
+     */
+    static get FRANZ_COMMUNICATOR() {
+        return `franz`;
+    }
+    /**
+     * @return {string}
+     */
+    static get DEFAULT_COMMUNICATOR() {
+        return InternalCommunicatorFacade.FRANZ_COMMUNICATOR;
+    }
 
-    static get MESSAGE_EVENT() { return `message`; }
-    static get AVAILABLE_EVENT() { return `available`; }
-    static get NOT_AVAILABLE_EVENT() { return `notAvailable`; }
-
-    static get KAFKA_COMMUNICATOR() { return `kafka`; }
-    static get DEFAULT_COMMUNICATOR() { return InternalCommunicatorFacade.KAFKA_COMMUNICATOR; }
-
-	static createCommunicator(communicatorType) {
-		let communicator;
+    /**
+     * @param {string} communicatorType
+     * @return {Object}
+     */
+    static createCommunicator(communicatorType) {
+        let communicator;
 
         debug(`${communicatorType} used as internal communicator`);
 
-		switch(communicatorType) {
-			case InternalCommunicatorFacade.KAFKA_COMMUNICATOR:
-                communicator =  new Kafka();
-				break;
-			default:
-                debug(`${communicatorType} communicator is not supported. Will be used default communicator`);
+        switch (communicatorType) {
+            case InternalCommunicatorFacade.KAFKA_COMMUNICATOR:
+                communicator = new Kafka();
+                break;
+            case InternalCommunicatorFacade.FRANZ_COMMUNICATOR:
+                communicator = new Franz({});
+                break;
+            default:
+                debug(
+                    `${communicatorType} communicator is not supported. Will be used default communicator`
+                );
 
-                communicatorType = InternalCommunicatorFacade.DEFAULT_COMMUNICATOR;
-                communicator = InternalCommunicatorFacade(communicatorType);
-				break;
-		}
+                communicatorType =
+                    InternalCommunicatorFacade.DEFAULT_COMMUNICATOR;
+                communicator = new InternalCommunicatorFacade(communicatorType);
+                break;
+        }
 
-		return communicator;
-	}
+        return communicator;
+    }
 
     /**
-	 * Creates new InternalCommunicatorFacade
+     * Creates new InternalCommunicatorFacade
+     * @param {string} communicatorType
+     * @constructor
      */
-	constructor(communicatorType) {
-		super();
+    constructor(communicatorType) {
+        super();
 
-		const me = this;
+        this.communicator =
+            InternalCommunicatorFacade.createCommunicator(communicatorType);
 
-		me.communicator = InternalCommunicatorFacade.createCommunicator(communicatorType);
+        this.communicator.on(
+            InternalCommunicatorFacade.MESSAGE_EVENT,
+            (subscriberId, topic, payload) => {
+                this.emit(
+                    InternalCommunicatorFacade.MESSAGE_EVENT,
+                    subscriberId,
+                    topic,
+                    payload
+                );
+            }
+        );
 
-		me.communicator.on(InternalCommunicatorFacade.MESSAGE_EVENT, (subscriberId, topic, payload) => {
-			me.emit(InternalCommunicatorFacade.MESSAGE_EVENT, subscriberId, topic, payload);
+        this.communicator.on(InternalCommunicatorFacade.AVAILABLE_EVENT, () => {
+            this.emit(InternalCommunicatorFacade.AVAILABLE_EVENT);
         });
 
-        me.communicator.on(InternalCommunicatorFacade.AVAILABLE_EVENT, () => {
-            me.emit(InternalCommunicatorFacade.AVAILABLE_EVENT);
-        });
-
-        me.communicator.on(InternalCommunicatorFacade.NOT_AVAILABLE_EVENT, () => {
-            me.emit(InternalCommunicatorFacade.NOT_AVAILABLE_EVENT);
-        });
-	}
-
-    /**
-	 * Creates new topic
-     * @param topicsList
-     * @returns {*}
-     */
-	createTopics(topicsList) {
-		const me = this;
-
-		return me.communicator.createTopics(topicsList);
-	}
+        this.communicator.on(
+            InternalCommunicatorFacade.NOT_AVAILABLE_EVENT,
+            () => {
+                this.emit(InternalCommunicatorFacade.NOT_AVAILABLE_EVENT);
+            }
+        );
+    }
 
     /**
-	 * Returns list of existing topics
-     * @returns {*}
+     * Creates new topic
+     * @param {Array} topicsList
+     * @return {Promise}
      */
-	listTopics() {
-		const me = this;
-
-		return me.communicator.listTopics();
-	}
+    createTopics(topicsList) {
+        return this.communicator.createTopics(topicsList);
+    }
 
     /**
-	 * Subscribes subscriberId to each topic in topicsList
-     * @param subscriberId
-     * @param subscriptionGroup
-     * @param topicsList
-     * @returns {*|Promise|Promise<void>|Promise<PushSubscription>}
+     * Returns list of existing topics
+     * @return {Array<string>}
      */
-	subscribe(subscriberId, subscriptionGroup, topicsList) {
-		const me = this;
-
-		return me.communicator.subscribe(subscriberId, subscriptionGroup, topicsList);
-	}
+    listTopics() {
+        return this.communicator.listTopics();
+    }
 
     /**
-	 * Unsubscribes subscriberId from each topic in topicsList
-     * @param subscriberId
-     * @param subscriptionGroup
-     * @param topicsList
-     * @returns {*|Promise|Promise<number[]>|Promise<boolean>}
+     * Subscribes subscriberId to each topic in topicsList
+     * @param {string} subscriberId
+     * @param {string} subscriptionGroup
+     * @param {Array<string>} topicsList
+     * @return {Promise}
      */
-	unsubscribe(subscriberId, topicsList) {
-		const me = this;
-
-		return me.communicator.unsubscribe(subscriberId, topicsList);
-	}
+    subscribe(subscriberId, subscriptionGroup, topicsList) {
+        return this.communicator.subscribe(
+            subscriberId,
+            subscriptionGroup,
+            topicsList
+        );
+    }
 
     /**
-	 * Sends payload to communicator
-     * @param payload
+     * Unsubscribes subscriberId from each topic in topicsList
+     * @param {string} subscriberId
+     * @param {Array<string>} topicsList
+     * @return {Promise}
      */
-	send(payload) {
-		const me = this;
-
-		return me.communicator.send(payload);
-	}
+    unsubscribe(subscriberId, topicsList) {
+        return this.communicator.unsubscribe(subscriberId, topicsList);
+    }
 
     /**
-	 * Removes subscriberId from communicator
-     * @param subscriberId
-     * @returns {*|void}
+     * Sends payload to communicator
+     * @param {string} payload
+     * @return {Promise}
      */
-	removeSubscriber(subscriberId) {
-		const me = this;
-
-		return me.communicator.removeSubscriber(subscriberId);
-	}
+    send(payload) {
+        return this.communicator.send(payload);
+    }
 
     /**
-	 * Checks if the communicator is available
-     * @returns {*}
+     * Removes subscriberId from communicator
+     * @param {string} subscriberId
+     * @return {Promise}
      */
-	isAvailable() {
-		const me = this;
+    removeSubscriber(subscriberId) {
+        return this.communicator.removeSubscriber(subscriberId);
+    }
 
-		return me.communicator.isAvailable();
-	}
+    /**
+     * Checks if the communicator is available
+     * @return {boolean}
+     */
+    isAvailable() {
+        return this.communicator.isAvailable();
+    }
 }
-
 
 module.exports = InternalCommunicatorFacade;
