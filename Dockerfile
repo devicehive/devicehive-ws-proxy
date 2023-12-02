@@ -1,4 +1,4 @@
-FROM node:18.8-alpine
+FROM node:18.19-alpine
 
 MAINTAINER devicehive
 
