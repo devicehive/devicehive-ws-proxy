@@ -1,4 +1,4 @@
-FROM node:18.8-alpine
+FROM node:21.4-alpine
 
 MAINTAINER devicehive
 
@@ -10,6 +10,7 @@ LABEL org.label-schema.url="https://devicehive.com" \
 
 ENV WORK_DIR=/usr/src/app/
 ENV CONF_DIR=/usr/src/app/conf
+ENV PROXY.APP_LOG_LEVEL="debug"
 RUN mkdir -p ${WORK_DIR} \
     && mkdir -p ${CONF_DIR} \
     && cd ${WORK_DIR}
