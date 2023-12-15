@@ -35,7 +35,7 @@
         "fifo": "^2.4.1",
         "json-evn-configurator": "^1.0.6",
         "jsonwebtoken": "^8.5.1",
-        "kafkajs": "^2.1.0",
+        "kafkajs": "^2.2.4",
         "lodash": "^4.17.21",
         "object-sizeof": "^1.6.3",
         "shortid": "^2.2.16",
