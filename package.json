@@ -34,7 +34,7 @@
         "devicehive-proxy-message": "^1.0.13",
         "fifo": "^2.4.1",
         "json-evn-configurator": "^1.0.6",
-        "jsonwebtoken": "^8.5.1",
+        "jsonwebtoken": "^9.0.0",
         "kafkajs": "^2.2.4",
         "lodash": "^4.17.21",
         "object-sizeof": "^1.6.3",
